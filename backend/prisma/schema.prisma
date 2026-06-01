@@ -1,0 +1,445 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  active
+  suspended
+  deleted
+}
+
+enum AppearanceMode {
+  light
+  dark
+  system
+}
+
+enum Theme {
+  iceBlue
+  forest
+  sunset
+  midnight
+  rose
+  neon
+  cosmic
+  chillVibes
+  bigBusiness
+  fallingLeaves
+}
+
+model User {
+  id String @id @default(uuid())
+
+  fullName String  @default("Spike-User")
+  email    String  @unique
+  password String?
+
+  avatar String?
+
+  workspaces             Workspace[]           @relation("WorkspaceMembers")
+  ownedWorkspaces        Workspace[]           @relation("WorkspaceOwner")
+  workspaceRoles         WorkspaceMemberRole[]
+  workspaceInvites       WorkspaceInvite[]
+  notifications          Notification[]        @relation("UserNotifications")
+  triggeredNotifications Notification[]        @relation("TriggeredNotifications")
+  messages               Message[]             @relation("UserMessages")
+  seenMessages           Message[]             @relation("SeenMessages")
+  deletedMessages        Message[]             @relation("DeletedMessages")
+  reactionMessages       MessageReaction[]
+  pinnedMessages         Message[]             @relation("PinnedMessages")
+  channels               Channel[]             @relation("ChannelMembers")
+  createdChannels        Channel[]             @relation("CreatedChannels")
+  callsStarted           Call[]                @relation("CallerCalls")
+  callParticipations     Call[]                @relation("CallParticipants")
+
+  status         UserStatus     @default(active)
+  appearanceMode AppearanceMode @default(dark)
+  theme          Theme          @default(rose)
+
+  emailNotifications Boolean @default(true)
+  pushNotifications  Boolean @default(true)
+
+  isOnline Boolean   @default(false)
+  lastSeen DateTime?
+
+  socketId String?
+
+  otp       String?
+  otpExpiry DateTime?
+
+  themeColor String @default("#4A154B")
+
+  isVerified Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum WorkspaceRole {
+  owner
+  admin
+  member
+  guest
+}
+
+enum InviteStatus {
+  pending
+  accepted
+  rejected
+}
+
+enum WorkspacePlan {
+  free
+  pro
+  enterprise
+}
+
+model Workspace {
+  id String @id @default(uuid())
+
+  name String
+  slug String? @unique
+
+  logo        String?
+  description String  @default("")
+
+  ownerId String
+  owner   User   @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  members User[] @relation("WorkspaceMembers")
+
+  channels      Channel[]
+  calls         Call[]
+  notifications Notification[]
+
+  roles   WorkspaceMemberRole[]
+  invites WorkspaceInvite[]
+
+  plan WorkspacePlan @default(free)
+
+  maxMembers  Int @default(50)
+  maxChannels Int @default(100)
+
+  allowPublicChannels  Boolean @default(true)
+  allowPrivateChannels Boolean @default(true)
+  allowGuestInvites    Boolean @default(false)
+
+  isArchived Boolean @default(false)
+  isDeleted  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Otp {
+  id String @id @default(uuid())
+
+  email String
+  otp   String
+
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+}
+
+enum NotificationType {
+  message
+  mention
+  reaction
+  invite
+  call
+  workspace_invite
+  channel_invite
+}
+
+model Notification {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  triggeredById String?
+  triggeredBy   User?   @relation("TriggeredNotifications", fields: [triggeredById], references: [id], onDelete: SetNull)
+
+  type NotificationType
+
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  channelId String?
+  channel   Channel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+
+  messageId String?
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  referenceId String?
+
+  contentPreview String @default("")
+
+  isRead Boolean @default(false)
+
+  readAt DateTime?
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([userId, isRead])
+}
+
+enum MediaType {
+  image
+  video
+  audio
+  file
+}
+
+enum MessageType {
+  text
+  image
+  video
+  audio
+  file
+  system
+}
+
+model Message {
+  id String @id @default(uuid())
+
+  channelId String
+  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  notifications Notification[]
+
+  senderId String
+  sender   User   @relation("UserMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  content String @default("")
+
+  messageType MessageType @default(text)
+
+  mediaUrl  String?
+  mediaType MediaType?
+
+  reactions MessageReaction[]
+
+  seenBy User[] @relation("SeenMessages")
+
+  parentMessageId String?
+  parentMessage   Message? @relation("MessageThread", fields: [parentMessageId], references: [id], onDelete: Cascade)
+
+  replies Message[] @relation("MessageThread")
+
+  lastMessageChannels Channel[] @relation("LastMessage")
+
+  isPinned Boolean @default(false)
+
+  pinnedById String?
+  pinnedBy   User?   @relation("PinnedMessages", fields: [pinnedById], references: [id], onDelete: SetNull)
+
+  pinnedAt DateTime?
+
+  isEdited Boolean @default(false)
+
+  editedAt DateTime?
+
+  deletedForEveryone Boolean @default(false)
+
+  isDeleted Boolean @default(false)
+
+  deletedFor User[] @relation("DeletedMessages")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([channelId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@index([channelId, createdAt])
+}
+
+enum ChannelType {
+  public
+  private
+  dm
+}
+
+model Channel {
+  id String @id @default(uuid())
+
+  name        String
+  description String @default("")
+
+  type ChannelType @default(public)
+
+  isDM Boolean @default(false)
+
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  notifications Notification[]
+
+  members User[] @relation("ChannelMembers")
+
+  createdById String
+  createdBy   User   @relation("CreatedChannels", fields: [createdById], references: [id], onDelete: Cascade)
+
+  messages Message[]
+
+  calls Call[]
+
+  lastMessageId String?
+  lastMessage   Message? @relation("LastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull)
+
+  topic String @default("")
+
+  isArchived Boolean @default(false)
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name, workspaceId])
+  @@index([type])
+  @@index([workspaceId])
+  @@index([isArchived])
+  @@index([isDeleted])
+  @@index([updatedAt])
+  @@index([isDM])
+}
+
+enum CallType {
+  audio
+  video
+}
+
+enum CallStatus {
+  ringing
+  accepted
+  rejected
+  missed
+  ended
+}
+
+model Call {
+  id String @id @default(uuid())
+
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  channelId String?
+  channel   Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  callerId String
+  caller   User   @relation("CallerCalls", fields: [callerId], references: [id], onDelete: Cascade)
+
+  participants User[] @relation("CallParticipants")
+
+  callType CallType
+
+  status CallStatus @default(ringing)
+
+  roomId String @unique
+
+  recordingUrl String?
+
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  duration Int @default(0)
+
+  isDeleted Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([channelId])
+  @@index([callerId])
+  @@index([callType])
+  @@index([status])
+  @@index([isDeleted])
+}
+
+model WorkspaceMemberRole {
+  id String @id @default(uuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role WorkspaceRole @default(member)
+
+  createdAt DateTime @default(now())
+}
+
+model WorkspaceInvite {
+  id String @id @default(uuid())
+
+  email String
+
+  token String @unique
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  invitedById String
+  invitedBy   User   @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+
+  status InviteStatus @default(pending)
+
+  expiresAt DateTime
+
+  invitedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+}
+
+model MessageReaction {
+  id String @id @default(uuid())
+
+  emoji String
+
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId, emoji])
+}
+
+model ChannelRead {
+  id String @id @default(uuid())
+
+  userId    String
+  channelId String
+
+  lastReadMessageId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, channelId])
+}
