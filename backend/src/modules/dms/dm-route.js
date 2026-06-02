@@ -1,14 +1,14 @@
 import express from "express";
-import { ipLimiter } from "../middlewares/ipLimiter.js";
+import { ipLimiter } from "../../middlewares/ipLimiter.js";
 
 import {
   createOrGetDM,
-  getUserDMs,
-  getDMById,
   deleteDM,
-} from "../controllers/dm.controller.js";
+  getDMById,
+  getUserDMs,
+} from "./dm.controller.js";
 
-import { protect } from "../middlewares/authMiddleware.js";
+import { protect } from "../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -16,7 +16,7 @@ const router = express.Router();
 router.post("/", protect, createOrGetDM);
 
 // 📩 Get all DMs of logged-in user
-router.get("/", protect,ipLimiter, getUserDMs);
+router.get("/", protect, ipLimiter, getUserDMs);
 
 // 📄 Get single DM details
 router.get("/:dmId", protect, getDMById);

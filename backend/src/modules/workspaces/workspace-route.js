@@ -9,10 +9,10 @@ import {
   removeWorkspaceMember,
   getWorkspaceByToken,
   acceptWorkspaceInvite
-} from "../controllers/workspace.controller.js";
+} from "./workspace.controller.js";
 
-import { protect } from "../middlewares/authMiddleware.js";
-import { authorizeRoles } from "../middlewares/roleMiddleware.js";
+import { protect } from "../../middlewares/authMiddleware.js";
+import { authorizeRoles } from "../../middlewares/roleMiddleware.js";
 import { get } from "http";
 
 const router = express.Router();

@@ -3,9 +3,9 @@ import express from "express";
 import {
   getAllGroups
 
-} from "../controllers/groups.controller.js";
+} from "./groups.controller.js";
 
-import { protect } from "../middlewares/authMiddleware.js";
+import { protect } from "../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 

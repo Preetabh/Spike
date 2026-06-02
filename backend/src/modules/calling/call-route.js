@@ -9,10 +9,10 @@ import {
   getWorkspaceCalls,
   getCallById,
   deleteCall,
-} from "../controllers/call.controller.js";
+} from "./call.controller.js";
 
-import { protect } from "../middlewares/authMiddleware.js";
-import { authorizeRoles } from "../middlewares/roleMiddleware.js";
+import { protect } from "../../middlewares/authMiddleware.js";
+import { authorizeRoles } from "../../middlewares/roleMiddleware.js";
 
 const router = express.Router();
 

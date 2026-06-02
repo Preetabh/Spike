@@ -1,7 +1,7 @@
-import { sendInviteEmail } from "../../config/email.verification.js";
-import prisma from "../db/db.js";
-import { generateJWT } from "../services/generate.cookie.js";
-import { generateToken } from "../services/generate.token.js";
+import { sendInviteEmail } from "../../../config/email.verification.js";
+import prisma from "../../db/db.js";
+import { generateJWT } from "../../services/generate.cookie.js";
+import { generateToken } from "../../services/generate.token.js";
 // Workspace controller: handles workspace CRUD, member management, and invite flow.
 
 //  CREATE WORKSPACE

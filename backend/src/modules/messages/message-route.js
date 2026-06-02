@@ -7,9 +7,9 @@ import {
   deleteMessage,
   addReaction,
   removeReaction,
-} from "../controllers/message.controller.js";
+} from "./message.controller.js";
 
-import { protect } from "../middlewares/authMiddleware.js";
+import { protect } from "../../middlewares/authMiddleware.js";
 
 const router = express.Router();
 

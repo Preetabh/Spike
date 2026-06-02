@@ -3,31 +3,29 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import express from "express";
-import cors from "cors";
 import cookieParser from "cookie-parser";
-import helmet from "helmet";
+import cors from "cors";
+import express from "express";
 import rateLimit from "express-rate-limit";
+import helmet from "helmet";
 import morgan from "morgan";
 
 // Routes
-import userRouter from "./routes/user-route.js";
-import workspaceRouter from "./routes/workspace-route.js";
-import channelRouter from "./routes/channel-route.js";
-import messageRouter from "./routes/message-route.js";
-import groupRouter from "./routes/groups-route.js";
-import callRouter from "./routes/call-route.js";
-import dmRouter from "./routes/dm-route.js";
+import dmRouter from "./modules/dms/dm-route.js";
+import userRouter from "./modules/users/user-route.js";
+import callRouter from "./modules/calling/call-route.js";
+import channelRouter from "./modules/channels/channel-route.js";
+import groupRouter from "./modules/groups/groups-route.js";
+import messageRouter from "./modules/messages/message-route.js";
+import workspaceRouter from "./modules/workspaces/workspace-route.js";
 
 // Middlewares
-import { notFound } from "./middlewares/notFound.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { notFound } from "./middlewares/notFound.js";
 
 const app = express();
 
-
 app.use(morgan("dev"));
-
 
 /* ===============================
    GLOBAL MIDDLEWARES
@@ -35,8 +33,6 @@ app.use(morgan("dev"));
 
 // Security headers
 app.use(helmet());
-
-
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,

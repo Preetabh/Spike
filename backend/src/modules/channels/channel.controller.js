@@ -1,5 +1,5 @@
-import Channel from "../models/channel-model.js";
-import Workspace from "../models/workspace-model.js";
+import Channel from "../../models/channel-model.js";
+import Workspace from "../../models/workspace-model.js";
 
 /* ======================================================
    CREATE CHANNEL

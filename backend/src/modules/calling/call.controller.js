@@ -1,5 +1,5 @@
-import CallHistory from "../models/call-model.js";
-import User from "../models/user-model.js";
+import CallHistory from "../../models/call-model.js";
+import User from "../../models/user-model.js";
 
 /* ======================================================
    START CALL (Creates call record with ongoing status)

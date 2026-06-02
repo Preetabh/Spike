@@ -1,5 +1,5 @@
-import Message from "../models/message-model.js";
-import Channel from "../models/channel-model.js";
+import Message from "../../models/message-model.js";
+import Channel from "../../models/channel-model.js";
 
 /* =====================================
    SEND MESSAGE

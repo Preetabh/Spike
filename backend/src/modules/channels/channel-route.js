@@ -1,6 +1,6 @@
 
 import express from "express";
-import { ipLimiter } from "../middlewares/ipLimiter.js";
+import { ipLimiter } from "../../middlewares/ipLimiter.js";
 import {
   createChannel,
   getWorkspaceChannels,
@@ -10,10 +10,10 @@ import {
   archiveChannel,
   addChannelMember,
   removeChannelMember,
-} from "../controllers/channel.controller.js";
+} from "./channel.controller.js";
 
-import { protect } from "../middlewares/authMiddleware.js";
-import { authorizeRoles } from "../middlewares/roleMiddleware.js";
+import { protect } from "../../middlewares/authMiddleware.js";
+import { authorizeRoles } from "../../middlewares/roleMiddleware.js";
 
 const router = express.Router();
 

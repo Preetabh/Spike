@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { sendOtpEmail } from "../../config/email.verification.js";
-import prisma from "../db/db.js";
-import { generateJWT } from "../services/generate.cookie.js";
+import { sendOtpEmail } from "../../../config/email.verification.js";
+import prisma from "../../db/db.js";
+import { generateJWT } from "../../services/generate.cookie.js";
 import { log } from "console";
 
 /* ===============================

@@ -1,4 +1,4 @@
-import prisma from "../db/db.js";
+import prisma from "../../db/db.js";
 //  GET USER WORKSPACES
 export const getAllGroups = async (req, res) => {
   try {

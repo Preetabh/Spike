@@ -74,11 +74,13 @@ const ChatListItem = ({
           )}
         </div>
       </div>
+      
 
       {/* Active Glow Border */}
       {active && (
         <div className="absolute inset-0 rounded-2xl pointer-events-none border border-[color:var(--border)] shadow-lg"></div>
       )}
+
     </div>
   );
 };
