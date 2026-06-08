@@ -1,5 +1,7 @@
 import Message from "../../models/message-model.js";
 import Channel from "../../models/channel-model.js";
+import { prisma } from "../../lib/prisma.js";
+
 
 /* =====================================
    SEND MESSAGE
@@ -35,6 +37,85 @@ export const sendMessage = async (req, res, next) => {
     }
 
     res.status(201).json(populatedMessage);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// get all messages By User Id
+export const getMessageById = async (req, res, next) => {
+  try {
+    const { messageId } = req.params;
+    const { workspaceId } = req.body;
+    const currentUser = req.user.id;
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: messageId,
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        avatar: true,
+        isOnline: true,
+        lastSeen: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const message = await prisma.message.findFirst({
+      where: {
+        id: messageId,
+        channel: {
+          workspaceId,
+          members: {
+            some: {
+              id: currentUser,
+            },
+          },
+        },
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+
+          },
+        },
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+
+              },
+            },
+          },
+        },
+      },
+    });
+    console.log(message)
+
+    if (!message) {
+      return res.status(404).json({
+
+        message: "Message not found or access denied",
+      });
+    }
+
+    return res.status(200).json({
+      message,
+    });
   } catch (error) {
     next(error);
   }

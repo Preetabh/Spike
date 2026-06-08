@@ -7,11 +7,16 @@ import {
   deleteMessage,
   addReaction,
   removeReaction,
+  getMessageById
 } from "./message.controller.js";
 
 import { protect } from "../../middlewares/authMiddleware.js";
+import { ipLimiter } from "../../middlewares/ipLimiter.js";
 
 const router = express.Router();
+
+// Recive messasges
+router.get("/:messageId", protect, ipLimiter, getMessageById);
 
 // 🔥 Send message (channel or DM)
 router.post("/", protect, sendMessage);
