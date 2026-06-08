@@ -5,7 +5,7 @@ import SearchBar from "../../../../../components/common/SearchBar";
 
 const ChannelPage = () => {
   return (
-    <div className="flex h-screen overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)] transition-all duration-300">
+    <div className="flex h-full  overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)] transition-all duration-300">
       {/* LEFT SIDEBAR */}
       <div className="relative w-[390px] border-r border-[color:var(--border)] bg-[color:var(--sidebar)] text-[color:var(--sidebar-foreground)] flex flex-col overflow-hidden backdrop-blur-xl transition-all duration-300">
         {/* TOP GLOW */}
@@ -23,9 +23,7 @@ const ChannelPage = () => {
                 Channels
               </h1>
 
-              <p className="text-sm text-[color:var(--muted-foreground)] mt-1 leading-6 max-w-[250px]">
-                Collaborate publicly with your workspace channels and discussions.
-              </p>
+
             </div>
 
             {/* CREATE CHANNEL */}
@@ -44,13 +42,7 @@ const ChannelPage = () => {
             All Channels
           </button>
 
-          <button className="px-4 py-2 rounded-2xl bg-[color:var(--card)] hover:bg-[color:var(--accent)] transition-all duration-300 text-sm text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] whitespace-nowrap border border-[color:var(--border)] backdrop-blur-xl">
-            Unread
-          </button>
 
-          <button className="px-4 py-2 rounded-2xl bg-[color:var(--card)] hover:bg-[color:var(--accent)] transition-all duration-300 text-sm text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)] whitespace-nowrap border border-[color:var(--border)] backdrop-blur-xl">
-            Public
-          </button>
         </div>
 
         {/* CHANNEL LIST */}

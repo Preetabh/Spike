@@ -108,7 +108,7 @@ export default function Layout({
         />
 
         {/* 🔥 CONTENT */}
-        <div className="flex-1 p-4 bg-[color:var(--background)] text-[color:var(--foreground)] overflow-auto">
+        <div className="flex-1 p-1 bg-[color:var(--background)] text-[color:var(--foreground)] overflow-auto no-scrollbar">
           {children}
         </div>
       </div>

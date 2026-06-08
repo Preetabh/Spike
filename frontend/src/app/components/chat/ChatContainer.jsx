@@ -1,28 +1,27 @@
 "use client";
 
-import React from "react";
 import { useParams } from "next/navigation";
-
-import ChatHeader from "./ChatHeader";
-import MessageList from "./MessageList";
-import MessageInput from "./MessageInput";
-import EmptyState from "./EmptyState";
-
 import { useQuery } from "@tanstack/react-query";
 
-
+import ChatHeader from "./ChatHeader";
+import MessageInput from "./MessageInput";
+import MessageList from "./MessageList";
 
 const ChatContainer = () => {
   const params = useParams();
 
   const memberId = params?.memberId;
-  const workspaceId = params?.workspaceId;
+  const workspaceId = params?.id;
 
-  const { data, isLoading } = useQuery({
+  console.log(
+    `Workspace id is: ${workspaceId} Member Id is: ${memberId}`
+  );
+
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["dm-conversation", memberId, workspaceId],
     queryFn: async () => {
       const res = await fetch(
-        `/api/v1/dm/${memberId}?workspaceId=${workspaceId}`,
+        `${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/dm/${memberId}?workspaceId=${workspaceId}`,
         {
           credentials: "include",
         }
@@ -34,71 +33,76 @@ const ChatContainer = () => {
 
       return res.json();
     },
-    enabled: !!memberId && !!workspaceId,
+    enabled: Boolean(memberId && workspaceId),
+    staleTime: 1000 * 60,
   });
 
-  // GET ACTIVE CHAT ID FROM URL
   const activeId =
-    params?.memberId ||
-    params?.channelId ||
-    params?.groupId;
+    params?.memberId || params?.channelId || params?.groupId;
 
   const selectedChat = data?.user;
   const messages = data?.messages || [];
 
   if (memberId && isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex h-[100dvh] w-full items-center justify-center bg-[color:var(--background)]">
         Loading...
       </div>
     );
   }
 
-  return (
-    <div className="flex-1 h-screen flex flex-col bg-[color:var(--background)] text-[color:var(--foreground)] overflow-hidden">
-      {/* BACKGROUND EFFECT */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-0 w-72 h-72 rounded-full bg-[color:var(--primary)]/10 blur-3xl"></div>
+  if (isError) {
+    return (
+      <div className="flex h-[100dvh] w-full items-center justify-center bg-[color:var(--background)] text-red-500">
+        Failed to load conversation.
+      </div>
+    );
+  }
 
-        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-[color:var(--accent)]/10 blur-3xl"></div>
+  return (
+    <div className="relative flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)]">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-[color:var(--primary)]/10 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[color:var(--accent)]/10 blur-3xl" />
       </div>
 
-      {(activeId && selectedChat) ? (
-        <>
-          {/* CHAT HEADER */}
-          <div className="relative z-10 border-b border-[color:var(--border)] backdrop-blur-xl bg-[color:var(--card)]/70">
-            <ChatHeader
-              chat={{
-                id: selectedChat.id,
-                name: selectedChat.fullName,
-                avatar: selectedChat.avatar,
-                isOnline: selectedChat.isOnline,
-                type: "dm",
-              }}
-            />
-          </div>
+      <div className="relative z-10 shrink-0 border-b border-[color:var(--border)] bg-[color:var(--card)]/70 backdrop-blur-xl">
+        <ChatHeader
+          chat={{
+            id: selectedChat?.id || activeId || "no-id",
+            name:
+              selectedChat?.fullName ||
+              selectedChat?.name ||
+              "Select a conversation",
+            avatar: selectedChat?.avatar || "",
+            isOnline: selectedChat?.isOnline || false,
+            type: "dm",
+          }}
+        />
+      </div>
 
-          {/* MESSAGE LIST */}
-          <div className="flex-1 relative z-10 overflow-hidden">
-            {messages.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-muted-foreground">
-                No conversation yet
-              </div>
-            ) : (
-              <MessageList messages={messages} />
-            )}
-          </div>
+      <div
+        className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden min-h-0 [scrollbar-width:none] [-ms-overflow-style:none]"
+        style={{ scrollbarWidth: "none" }}
+      >
+        <style jsx>{`
+          div::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
 
-          {/* MESSAGE INPUT */}
-          <div className="relative z-10 border-t border-[color:var(--border)] backdrop-blur-xl bg-[color:var(--card)]/70">
-            <MessageInput />
+        {messages.length === 0 ? (
+          <div className="flex h-full min-h-[300px] items-center justify-center px-4 text-center text-muted-foreground">
+            No conversation yet
           </div>
-        </>
-      ) : (
-        <div className="flex-1 flex items-center justify-center relative z-10">
-          <EmptyState />
-        </div>
-      )}
+        ) : (
+          <MessageList messages={messages} />
+        )}
+      </div>
+
+      <div className="relative z-10 shrink-0 border-t border-[color:var(--border)] bg-[color:var(--card)]/70 backdrop-blur-xl">
+        <MessageInput />
+      </div>
     </div>
   );
 };

@@ -9,7 +9,7 @@ const Page = () => {
     <div className="w-full min-h-screen bg-white text-gray-800">
       {/* NAVBAR */}
       <nav className="w-full flex items-center justify-between px-6 md:px-12 py-4 border-b">
-        <h1 className="text-2xl font-bold text-[#4A154B]">Slack</h1>
+        <h1 className="text-2xl font-bold text-[#4A154B]">Spike</h1>
         <div className="flex gap-4">
           <button
             onClick={() => router.push("/login")}
@@ -102,7 +102,7 @@ const Page = () => {
 
       {/* FOOTER */}
       <footer className="text-center py-6 text-gray-500 text-sm">
-        © {new Date().getFullYear()} Slack Clone. Built by Vishu 🚀
+        © {new Date().getFullYear()} Spike. Built by Vishu 🚀
       </footer>
     </div>
   );

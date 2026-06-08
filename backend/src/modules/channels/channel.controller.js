@@ -99,6 +99,146 @@ export const getWorkspaceChannels = async (req, res, next) => {
           }
         ]
       },
+      {
+        _id: "123456",
+        name: "general234",
+        workspace: workspaceId,
+        type: "public",
+        members: [
+          {
+            _id: "u12334",
+            fullName: "John Doe123",
+            email: "john.doe123@example.com",
+            profilePic: "https://example.com/avatar.jpg"
+          }
+        ]
+      },
+      {
+        _id: "123454",
+        name: "general234",
+        workspace: workspaceId,
+        type: "public",
+        members: [
+          {
+            _id: "u1233",
+            fullName: "John Doe123",
+            email: "john.doe123@example.com",
+            profilePic: "https://example.com/avatar.jpg"
+          }
+        ]
+      },
+      {
+        _id: "1234534",
+        name: "general2334",
+        workspace: workspaceId,
+        type: "public",
+        members: [
+          {
+            _id: "u1233",
+            fullName: "John Doe123",
+            email: "john.doe123@example.com",
+            profilePic: "https://example.com/avatar.jpg"
+          }
+        ]
+      },
+      {
+        _id: "1234545",
+        name: "general2345",
+        workspace: workspaceId,
+        type: "public",
+        members: [
+          {
+            _id: "u1233",
+            fullName: "John Doe123",
+            email: "john.doe123@example.com",
+            profilePic: "https://example.com/avatar.jpg"
+          }
+        ]
+      },
+      {
+        _id: "1234556",
+        name: "general2356",
+        workspace: workspaceId,
+        type: "public",
+        members: [
+          {
+            _id: "u1233",
+            fullName: "John Doe123",
+            email: "john.doe123@example.com",
+            profilePic: "https://example.com/avatar.jpg"
+          }
+        ]
+      },
+      {
+        _id: "1234567",
+        name: "general2367",
+        workspace: workspaceId,
+        type: "public",
+        members: [
+          {
+            _id: "u1233",
+            fullName: "John Doe123",
+            email: "john.doe123@example.com",
+            profilePic: "https://example.com/avatar.jpg"
+          }
+        ]
+      },
+      {
+        _id: "1234589",
+        name: "general2334",
+        workspace: workspaceId,
+        type: "public",
+        members: [
+          {
+            _id: "u1233",
+            fullName: "John Doe123",
+            email: "john.doe123@example.com",
+            profilePic: "https://example.com/avatar.jpg"
+          }
+        ]
+      },
+      {
+        _id: "1234512",
+        name: "general2312",
+        workspace: workspaceId,
+        type: "public",
+        members: [
+          {
+            _id: "u123312",
+            fullName: "John Doe12312",
+            email: "john.doe123@example.com",
+            profilePic: "https://example.com/avatar.jpg"
+          }
+        ]
+      },
+      {
+        _id: "12345345",
+        name: "general23324",
+        workspace: workspaceId,
+        type: "public",
+        members: [
+          {
+            _id: "u12335",
+            fullName: "John Doe1237",
+            email: "john.doe123@example.com",
+            profilePic: "https://example.com/avatar.jpg"
+          }
+        ]
+      },
+      {
+        _id: "1234567",
+        name: "general231",
+        workspace: workspaceId,
+        type: "public",
+        members: [
+          {
+            _id: "u123390",
+            fullName: "John Doe1234",
+            email: "john.doe123@example.com",
+            profilePic: "https://example.com/avatar.jpg"
+          }
+        ]
+      }
 
     ]
     res.status(200).json(data);

@@ -9,7 +9,7 @@ const ChatListItem = ({
   return (
     <div
       onClick={onClick}
-      className={`group relative flex items-center gap-4 px-5 py-4 cursor-pointer transition-all duration-300 border-b border-[color:var(--border)] overflow-hidden backdrop-blur-xl ${
+      className={`group  relative flex items-center gap-4 px-5 py-4 cursor-pointer transition-all duration-300 border-b border-[color:var(--border)] overflow-hidden backdrop-blur-xl ${
         active
           ? "bg-[color:var(--card)] border-l-4 border-l-[color:var(--primary)] shadow-lg"
           : "hover:bg-[color:var(--accent)]"
@@ -74,7 +74,7 @@ const ChatListItem = ({
           )}
         </div>
       </div>
-      
+
 
       {/* Active Glow Border */}
       {active && (

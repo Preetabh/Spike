@@ -5,7 +5,7 @@ import SearchBar from "../../../../../components/common/SearchBar";
 
 const PersonalMessagePage = () => {
   return (
-    <div className="flex h-screen overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)]">
+    <div className="flex h-full overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)]">
       {/* LEFT SIDEBAR */}
       <div className="relative w-[390px] border-r border-[color:var(--border)] bg-[color:var(--sidebar)] text-[color:var(--sidebar-foreground)] flex flex-col overflow-hidden backdrop-blur-xl transition-all duration-300">
         {/* Background Glow */}
@@ -16,16 +16,14 @@ const PersonalMessagePage = () => {
         </div>
 
         {/* Header */}
-        <div className="relative z-10 p-6 border-b border-[color:var(--border)] bg-[color:var(--card)]/70 backdrop-blur-xl">
+        <div className="relative z-10 px-4 py-4 border-b border-[color:var(--border)] bg-[color:var(--card)]/70 backdrop-blur-xl">
           <div className="flex items-center justify-between mb-6 gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-[color:var(--foreground)]">
                 Messages
               </h1>
 
-              <p className="text-sm text-[color:var(--muted-foreground)] mt-1 leading-6 max-w-[250px]">
-                Continue your direct conversations with workspace members.
-              </p>
+             
             </div>
 
             {/* Create Chat */}

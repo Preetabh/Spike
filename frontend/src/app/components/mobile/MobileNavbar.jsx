@@ -16,7 +16,7 @@ export default function MobileNavbar({ id }) {
         <FaHashtag size={22} />
         <span>Channels</span>
       </Link>
-      <Link href={`/workspace/${id}/messages`} className="flex flex-col items-center text-xs hover:text-[var(--primary)] transition">
+      <Link href={`/workspace/${id}/dm`} className="flex flex-col items-center text-xs hover:text-[var(--primary)] transition">
         <IoChatbubbleSharp size={22} />
         <span>Messages</span>
       </Link>

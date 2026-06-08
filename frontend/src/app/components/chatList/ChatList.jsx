@@ -140,7 +140,7 @@ const ChatList = ({ routeType = "dm" }) => {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-sidebar no-scrollbar">
+    <div className="h-full pb-20 md:pb-15 overflow-y-auto bg-sidebar  no-scrollbar">
       <div className="flex flex-col">
         {chats.map((chat) => (
           <ChatListItem

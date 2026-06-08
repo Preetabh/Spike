@@ -1,8 +1,6 @@
 import { prisma } from "../../lib/prisma.js";
 
-/* =====================================
-   CREATE OR GET DM (1-to-1)
-===================================== */
+// CREATE OR GET DM (1-to-1)
 export const createOrGetDM = async (req, res, next) => {
   try {
     const { userId } = req.body;
@@ -82,9 +80,8 @@ export const createOrGetDM = async (req, res, next) => {
   }
 };
 
-/* =====================================
-   GET ALL USER DMs
-===================================== */
+
+// GET ALL USER DMs
 export const getUserDMs = async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -133,13 +130,13 @@ export const getUserDMs = async (req, res, next) => {
   }
 };
 
-/* =====================================
-   GET SINGLE DM
-===================================== */
+
+// GET SINGLE DM
 export const getDMById = async (req, res, next) => {
   try {
+    console.log("I am so happy api is successfully hit");
     const { dmId } = req.params;
-    const { workspaceId } = req.body;
+    const { workspaceId } = req.params;
     const currentUser = req.user.id;
 
     const workspace = await prisma.workspace.findFirst({
@@ -183,13 +180,13 @@ export const getDMById = async (req, res, next) => {
       user: workspace.members[0],
     });
   } catch (error) {
+    console.error("Error fetching DM by ID:", error);
     next(error);
   }
 };
 
-/* =====================================
-   DELETE / LEAVE DM (Soft)
-===================================== */
+
+// DELETE / LEAVE DM (Soft)
 export const deleteDM = async (req, res, next) => {
   try {
     const { dmId } = req.params;
