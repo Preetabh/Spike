@@ -6,16 +6,14 @@ import { useQuery } from "@tanstack/react-query";
 import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import MessageList from "./MessageList";
+import useConversationSocket from "../../../hooks/useConversationSocket";
+import useMessages from "../../../hooks/useMessages";
 
 const ChatContainer = () => {
   const params = useParams();
 
   const memberId = params?.memberId;
   const workspaceId = params?.id;
-
-  console.log(
-    `Workspace id is: ${workspaceId} Member Id is: ${memberId}`
-  );
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["dm-conversation", memberId, workspaceId],
@@ -37,13 +35,17 @@ const ChatContainer = () => {
     staleTime: 1000 * 60,
   });
 
-  const activeId =
-    params?.memberId || params?.channelId || params?.groupId;
-
   const selectedChat = data?.user;
-  const messages = data?.messages || [];
+  const conversationId = data?.conversation?.id;
 
-  if (memberId && isLoading) {
+  useConversationSocket(conversationId);
+
+  const {
+    messages,
+    isLoading: messagesLoading,
+  } = useMessages(conversationId);
+
+  if (memberId && (isLoading || messagesLoading)) {
     return (
       <div className="flex h-[100dvh] w-full items-center justify-center bg-[color:var(--background)]">
         Loading...
@@ -59,8 +61,13 @@ const ChatContainer = () => {
     );
   }
 
+  console.log('DM Chat Context', {
+    conversationId,
+    workspaceId,
+    memberId,
+  });
   return (
-    <div className="relative flex h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)]">
+    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)]">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-[color:var(--primary)]/10 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[color:var(--accent)]/10 blur-3xl" />
@@ -69,7 +76,7 @@ const ChatContainer = () => {
       <div className="relative z-10 shrink-0 border-b border-[color:var(--border)] bg-[color:var(--card)]/70 backdrop-blur-xl">
         <ChatHeader
           chat={{
-            id: selectedChat?.id || activeId || "no-id",
+            id: selectedChat?.id || conversationId || "no-id",
             name:
               selectedChat?.fullName ||
               selectedChat?.name ||
@@ -101,7 +108,11 @@ const ChatContainer = () => {
       </div>
 
       <div className="relative z-10 shrink-0 border-t border-[color:var(--border)] bg-[color:var(--card)]/70 backdrop-blur-xl">
-        <MessageInput />
+        <MessageInput
+          conversationId={conversationId}
+          workspaceId={workspaceId}
+          memberId={memberId}
+        />
       </div>
     </div>
   );

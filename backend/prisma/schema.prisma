@@ -57,10 +57,12 @@ model User {
   deletedMessages        Message[]             @relation("DeletedMessages")
   reactionMessages       MessageReaction[]
   pinnedMessages         Message[]             @relation("PinnedMessages")
-  channels               Channel[]             @relation("ChannelMembers")
-  createdChannels        Channel[]             @relation("CreatedChannels")
-  callsStarted           Call[]                @relation("CallerCalls")
-  callParticipations     Call[]                @relation("CallParticipants")
+  conversationMembers    ConversationMember[]
+  conversationReads      ConversationRead[]
+
+  createdConversations Conversation[] @relation("CreatedConversations")
+  callsStarted         Call[]         @relation("CallerCalls")
+  callParticipations   Call[]         @relation("CallParticipants")
 
   status         UserStatus     @default(active)
   appearanceMode AppearanceMode @default(dark)
@@ -118,7 +120,7 @@ model Workspace {
 
   members User[] @relation("WorkspaceMembers")
 
-  channels      Channel[]
+  conversations Conversation[]
   calls         Call[]
   notifications Notification[]
 
@@ -179,8 +181,8 @@ model Notification {
   workspaceId String?
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
 
-  channelId String?
-  channel   Channel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
 
   messageId String?
   message   Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
@@ -222,8 +224,8 @@ enum MessageType {
 model Message {
   id String @id @default(uuid())
 
-  channelId String
-  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   Conversation @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade)
 
   notifications Notification[]
 
@@ -237,7 +239,8 @@ model Message {
   mediaUrl  String?
   mediaType MediaType?
 
-  reactions MessageReaction[]
+  reactions   MessageReaction[]
+  attachments MessageAttachment[]
 
   seenBy User[] @relation("SeenMessages")
 
@@ -245,8 +248,6 @@ model Message {
   parentMessage   Message? @relation("MessageThread", fields: [parentMessageId], references: [id], onDelete: Cascade)
 
   replies Message[] @relation("MessageThread")
-
-  lastMessageChannels Channel[] @relation("LastMessage")
 
   isPinned Boolean @default(false)
 
@@ -265,47 +266,65 @@ model Message {
 
   deletedFor User[] @relation("DeletedMessages")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  lastMessageForConversations Conversation[] @relation("LastConversationMessage")
+  createdAt                   DateTime       @default(now())
+  updatedAt                   DateTime       @updatedAt
 
-  @@index([channelId])
+  @@index([conversationId])
   @@index([senderId])
   @@index([createdAt])
-  @@index([channelId, createdAt])
+  @@index([conversationId, createdAt])
 }
 
-enum ChannelType {
-  public
-  private
-  dm
-}
-
-model Channel {
+model MessageAttachment {
   id String @id @default(uuid())
 
-  name        String
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  url String
+
+  fileName String?
+  mimeType String?
+  fileSize Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([messageId])
+}
+
+enum ConversationType {
+  workspace_channel
+  private_channel
+  dm
+  group
+}
+
+model Conversation {
+  id String @id @default(uuid())
+
+  title       String
   description String @default("")
 
-  type ChannelType @default(public)
-
-  isDM Boolean @default(false)
+  type ConversationType @default(workspace_channel)
 
   workspaceId String?
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   notifications Notification[]
 
-  members User[] @relation("ChannelMembers")
+  members ConversationMember[]
+  reads   ConversationRead[]
 
   createdById String
-  createdBy   User   @relation("CreatedChannels", fields: [createdById], references: [id], onDelete: Cascade)
+  createdBy   User   @relation("CreatedConversations", fields: [createdById], references: [id], onDelete: Cascade)
 
-  messages Message[]
+  messages Message[] @relation("ConversationMessages")
 
   calls Call[]
 
   lastMessageId String?
-  lastMessage   Message? @relation("LastMessage", fields: [lastMessageId], references: [id], onDelete: SetNull)
+  lastMessage   Message? @relation("LastConversationMessage", fields: [lastMessageId], references: [id], onDelete: SetNull)
 
   topic String @default("")
 
@@ -316,13 +335,54 @@ model Channel {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([name, workspaceId])
+  @@index([title, workspaceId])
   @@index([type])
   @@index([workspaceId])
   @@index([isArchived])
   @@index([isDeleted])
   @@index([updatedAt])
-  @@index([isDM])
+}
+
+model ConversationMember {
+  id String @id @default(uuid())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role String?
+
+  muted  Boolean @default(false)
+  pinned Boolean @default(false)
+
+  joinedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+}
+
+model ConversationRead {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  lastReadMessageId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, conversationId])
+  @@index([userId])
+  @@index([conversationId])
 }
 
 enum CallType {
@@ -344,8 +404,8 @@ model Call {
   workspaceId String?
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  channelId String?
-  channel   Channel? @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   callerId String
   caller   User   @relation("CallerCalls", fields: [callerId], references: [id], onDelete: Cascade)
@@ -371,7 +431,7 @@ model Call {
   updatedAt DateTime @updatedAt
 
   @@index([workspaceId])
-  @@index([channelId])
+  @@index([conversationId])
   @@index([callerId])
   @@index([callType])
   @@index([status])
@@ -428,18 +488,4 @@ model MessageReaction {
   createdAt DateTime @default(now())
 
   @@unique([messageId, userId, emoji])
-}
-
-model ChannelRead {
-  id String @id @default(uuid())
-
-  userId    String
-  channelId String
-
-  lastReadMessageId String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, channelId])
 }

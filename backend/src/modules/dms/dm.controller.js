@@ -25,24 +25,35 @@ export const createOrGetDM = async (req, res, next) => {
     }
 
     // 🔍 Check if DM already exists
-    let existingDM = await prisma.channel.findFirst({
+    let existingDM = await prisma.conversation.findFirst({
       where: {
         type: "dm",
         members: {
-          every: {
-            id: {
-              in: [currentUser, userId],
-            },
+          some: {
+            userId: currentUser,
           },
         },
+        AND: [
+          {
+            members: {
+              some: {
+                userId,
+              },
+            },
+          },
+        ],
       },
       include: {
         members: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            avatar: true,
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                avatar: true,
+              },
+            },
           },
         },
       },
@@ -52,23 +63,34 @@ export const createOrGetDM = async (req, res, next) => {
       return res.status(200).json(existingDM);
     }
 
-    // 🔥 Create new DM channel
-    const dm = await prisma.channel.create({
+    // 🔥 Create new DM conversation
+    const dm = await prisma.conversation.create({
       data: {
-        name: "direct-message",
+        title: "Direct Message",
         type: "dm",
         createdById: currentUser,
         members: {
-          connect: [{ id: currentUser }, { id: userId }],
+          create: [
+            {
+              userId: currentUser,
+            },
+            {
+              userId,
+            },
+          ],
         },
       },
       include: {
         members: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            avatar: true,
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                avatar: true,
+              },
+            },
           },
         },
       },
@@ -136,7 +158,7 @@ export const getDMById = async (req, res, next) => {
   try {
     console.log("I am so happy api is successfully hit");
     const { dmId } = req.params;
-    const { workspaceId } = req.params;
+    const { workspaceId } = req.query;
     const currentUser = req.user.id;
 
     const workspace = await prisma.workspace.findFirst({
@@ -172,12 +194,38 @@ export const getDMById = async (req, res, next) => {
       });
     }
 
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        type: "dm",
+        members: {
+          some: {
+            userId: currentUser,
+          },
+        },
+        AND: [
+          {
+            members: {
+              some: {
+                userId: dmId,
+              },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        type: true,
+      },
+    });
+
     res.status(200).json({
       workspace: {
         id: workspace.id,
         name: workspace.name,
       },
+      conversation,
       user: workspace.members[0],
+      messages: [],
     });
   } catch (error) {
     console.error("Error fetching DM by ID:", error);
@@ -191,13 +239,13 @@ export const deleteDM = async (req, res, next) => {
   try {
     const { dmId } = req.params;
 
-    const dm = await prisma.channel.findFirst({
+    const dm = await prisma.conversation.findFirst({
       where: {
         id: dmId,
         type: "dm",
         members: {
           some: {
-            id: req.user.id,
+            userId: req.user.id,
           },
         },
       },
@@ -207,7 +255,7 @@ export const deleteDM = async (req, res, next) => {
       return res.status(404).json({ message: "DM not found" });
     }
 
-    await prisma.channel.update({
+    await prisma.conversation.update({
       where: {
         id: dmId,
       },

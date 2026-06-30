@@ -1,42 +1,65 @@
-import Message from "../../models/message-model.js";
-import Channel from "../../models/channel-model.js";
 import { prisma } from "../../lib/prisma.js";
-
 
 /* =====================================
    SEND MESSAGE
 ===================================== */
 export const sendMessage = async (req, res, next) => {
   try {
-    const { channelId, content } = req.body;
+    const { conversationId, content } = req.body;
+    const senderId = req.user.id;
 
-    if (!channelId || !content) {
-      return res.status(400).json({ message: "Channel & content required" });
+    if (!conversationId || !content?.trim()) {
+      return res.status(400).json({
+        message: "Conversation ID and content are required",
+      });
     }
 
-    const message = await Message.create({
-      channel: channelId,
-      sender: req.user._id,
-      content,
+    const member = await prisma.conversationMember.findFirst({
+      where: {
+        conversationId,
+        userId: senderId,
+      },
     });
 
-    // 🔥 Update lastMessage in channel
-    await Channel.findByIdAndUpdate(channelId, {
-      lastMessage: message._id,
+    if (!member) {
+      return res.status(403).json({
+        message: "Access denied",
+      });
+    }
+
+    const message = await prisma.message.create({
+      data: {
+        conversationId,
+        senderId,
+        content: content.trim(),
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            fullName: true,
+            avatar: true,
+          },
+        },
+      },
     });
 
-    const populatedMessage = await message.populate(
-      "sender",
-      "fullName email profilePic"
-    );
+    await prisma.conversation.update({
+      where: {
+        id: conversationId,
+      },
+      data: {
+        lastMessageId: message.id,
+      },
+    });
 
-    // 🔥 Emit via socket
     const io = req.app.get("io");
+
     if (io) {
-      io.to(`channel_${channelId}`).emit("receiveMessage", populatedMessage);
+      io.to(`conversation_${conversationId}`).emit("receive-message", message);
     }
 
-    res.status(201).json(populatedMessage);
+    return res.status(201).json(message);
   } catch (error) {
     next(error);
   }
@@ -49,34 +72,14 @@ export const getMessageById = async (req, res, next) => {
     const { workspaceId } = req.body;
     const currentUser = req.user.id;
 
-    const user = await prisma.user.findUnique({
-      where: {
-        id: messageId,
-      },
-      select: {
-        id: true,
-        fullName: true,
-        email: true,
-        avatar: true,
-        isOnline: true,
-        lastSeen: true,
-      },
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found",
-      });
-    }
-
     const message = await prisma.message.findFirst({
       where: {
         id: messageId,
-        channel: {
+        conversation: {
           workspaceId,
           members: {
             some: {
-              id: currentUser,
+              userId: currentUser,
             },
           },
         },
@@ -87,7 +90,7 @@ export const getMessageById = async (req, res, next) => {
             id: true,
             fullName: true,
             email: true,
-
+            avatar: true,
           },
         },
         reactions: {
@@ -97,18 +100,16 @@ export const getMessageById = async (req, res, next) => {
                 id: true,
                 fullName: true,
                 email: true,
-
               },
             },
           },
         },
       },
     });
-    console.log(message)
+    console.log(message);
 
     if (!message) {
       return res.status(404).json({
-
         message: "Message not found or access denied",
       });
     }
@@ -122,20 +123,46 @@ export const getMessageById = async (req, res, next) => {
 };
 
 /* =====================================
-   GET CHANNEL MESSAGES
+   GET CONVERSATION MESSAGES
 ===================================== */
-export const getChannelMessages = async (req, res, next) => {
+export const getConversationMessages = async (req, res, next) => {
   try {
-    const { channelId } = req.params;
+    const { conversationId } = req.params;
+    const userId = req.user.id;
 
-    const messages = await Message.find({
-      channel: channelId,
-      isDeleted: false,
-    })
-      .populate("sender", "fullName email profilePic")
-      .sort({ createdAt: 1 });
+    const member = await prisma.conversationMember.findFirst({
+      where: {
+        conversationId,
+        userId,
+      },
+    });
 
-    res.json(messages);
+    if (!member) {
+      return res.status(403).json({
+        message: "Access denied",
+      });
+    }
+
+    const messages = await prisma.message.findMany({
+      where: {
+        conversationId,
+        isDeleted: false,
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            fullName: true,
+            avatar: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+    return res.status(200).json(messages);
   } catch (error) {
     next(error);
   }
@@ -149,18 +176,25 @@ export const editMessage = async (req, res, next) => {
     const { messageId } = req.params;
     const { content } = req.body;
 
-    const message = await Message.findById(messageId);
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+    });
     if (!message) return res.status(404).json({ message: "Message not found" });
 
-    if (message.sender.toString() !== req.user._id.toString()) {
+    if (message.senderId !== req.user.id) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    message.content = content || message.content;
-    message.isEdited = true;
-    await message.save();
+    const updatedMessage = await prisma.message.update({
+      where: { id: messageId },
+      data: {
+        content,
+        isEdited: true,
+        editedAt: new Date(),
+      },
+    });
 
-    res.json(message);
+    res.json(updatedMessage);
   } catch (error) {
     next(error);
   }
@@ -173,15 +207,21 @@ export const deleteMessage = async (req, res, next) => {
   try {
     const { messageId } = req.params;
 
-    const message = await Message.findById(messageId);
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+    });
     if (!message) return res.status(404).json({ message: "Message not found" });
 
-    if (message.sender.toString() !== req.user._id.toString()) {
+    if (message.senderId !== req.user.id) {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    message.isDeleted = true;
-    await message.save();
+    await prisma.message.update({
+      where: { id: messageId },
+      data: {
+        isDeleted: true,
+      },
+    });
 
     res.json({ message: "Message deleted" });
   } catch (error) {
@@ -197,23 +237,20 @@ export const addReaction = async (req, res, next) => {
     const { messageId } = req.params;
     const { emoji } = req.body;
 
-    const message = await Message.findById(messageId);
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+    });
     if (!message) return res.status(404).json({ message: "Message not found" });
 
-    const alreadyReacted = message.reactions.find(
-      (r) => r.user.toString() === req.user._id.toString()
-    );
-
-    if (!alreadyReacted) {
-      message.reactions.push({
-        user: req.user._id,
+    const reaction = await prisma.messageReaction.create({
+      data: {
+        messageId,
+        userId: req.user.id,
         emoji,
-      });
-    }
+      },
+    });
 
-    await message.save();
-
-    res.json(message);
+    res.json(reaction);
   } catch (error) {
     next(error);
   }
@@ -226,16 +263,14 @@ export const removeReaction = async (req, res, next) => {
   try {
     const { messageId } = req.params;
 
-    const message = await Message.findById(messageId);
-    if (!message) return res.status(404).json({ message: "Message not found" });
+    await prisma.messageReaction.deleteMany({
+      where: {
+        messageId,
+        userId: req.user.id,
+      },
+    });
 
-    message.reactions = message.reactions.filter(
-      (r) => r.user.toString() !== req.user._id.toString()
-    );
-
-    await message.save();
-
-    res.json(message);
+    res.json({ message: "Reaction removed" });
   } catch (error) {
     next(error);
   }

@@ -130,7 +130,7 @@ export const getWorkspaceById = async (req, res) => {
             avatar: true,
           },
         },
-        channels: true,
+        conversations: true,
       },
     });
 

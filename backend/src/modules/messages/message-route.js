@@ -1,13 +1,13 @@
-
 import express from "express";
+
 import {
   sendMessage,
-  getChannelMessages,
+  getConversationMessages,
+  getMessageById,
   editMessage,
   deleteMessage,
   addReaction,
   removeReaction,
-  getMessageById
 } from "./message.controller.js";
 
 import { protect } from "../../middlewares/authMiddleware.js";
@@ -15,25 +15,31 @@ import { ipLimiter } from "../../middlewares/ipLimiter.js";
 
 const router = express.Router();
 
-// Recive messasges
+/*
+
+| Message Routes
+
+*/
+
+// Single Message
 router.get("/:messageId", protect, ipLimiter, getMessageById);
 
-// 🔥 Send message (channel or DM)
+// Send Message
 router.post("/", protect, sendMessage);
 
-// 🔥 Get all messages of a channel
-router.get("/channel/:channelId", protect, getChannelMessages);
+// Get Messages of Conversation
+router.get("/conversation/:conversationId", protect, getConversationMessages);
 
-// ✏ Edit message
+// Edit Message
 router.put("/:messageId", protect, editMessage);
 
-// 🗑 Delete message (soft delete)
+// Delete Message
 router.delete("/:messageId", protect, deleteMessage);
 
-// 😀 Add reaction
-router.post("/:messageId/reaction", protect, addReaction);
+// Add Reaction
+router.post("/:messageId/reactions", protect, addReaction);
 
-// ❌ Remove reaction
-router.delete("/:messageId/reaction", protect, removeReaction);
+// Remove Reaction
+router.delete("/:messageId/reactions", protect, removeReaction);
 
 export default router;
