@@ -194,7 +194,7 @@ export const getDMById = async (req, res, next) => {
       });
     }
 
-    const conversation = await prisma.conversation.findFirst({
+    let conversation = await prisma.conversation.findFirst({
       where: {
         type: "dm",
         members: {
@@ -217,6 +217,31 @@ export const getDMById = async (req, res, next) => {
         type: true,
       },
     });
+
+    if (!conversation) {
+      conversation = await prisma.conversation.create({
+        data: {
+          title: "Direct Message",
+          type: "dm",
+          createdById: currentUser,
+          workspaceId: workspaceId,
+          members: {
+            create: [
+              {
+                userId: currentUser,
+              },
+              {
+                userId: dmId,
+              },
+            ],
+          },
+        },
+        select: {
+          id: true,
+          type: true,
+        },
+      });
+    }
 
     res.status(200).json({
       workspace: {

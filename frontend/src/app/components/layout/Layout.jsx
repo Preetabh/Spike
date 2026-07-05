@@ -74,10 +74,10 @@ export default function Layout({
 
   // Apply theme
   useEffect(() => {
-    if (user?.appearance) {
+    if (user) {
       applyTheme(
-        user.appearance.mode,
-        user.appearance.theme
+        user.appearanceMode || user.appearance?.mode || "dark",
+        user.theme || user.appearance?.theme || "rose"
       );
     }
   }, [user]);
@@ -95,7 +95,7 @@ export default function Layout({
       />
 
       {/* 🔥 MAIN AREA */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* 🔥 SIDEBAR */}
         <Sidebar
           id={id}
@@ -108,7 +108,7 @@ export default function Layout({
         />
 
         {/* 🔥 CONTENT */}
-        <div className="flex-1 p-1 bg-[color:var(--background)] text-[color:var(--foreground)] overflow-auto no-scrollbar">
+        <div className="flex-1 bg-[color:var(--background)] text-[color:var(--foreground)] overflow-hidden min-h-0 h-full flex flex-col">
           {children}
         </div>
       </div>

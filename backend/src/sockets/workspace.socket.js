@@ -65,7 +65,7 @@ const workspaceSocket = (io, socket) => {
     io.to(`workspace_${workspaceId}`).emit("newWorkspaceAnnouncement", {
       message,
       createdAt: new Date(),
-      createdBy: socket.user?._id,
+      createdBy: socket.data.user?.id,
     });
   });
 
@@ -74,8 +74,8 @@ const workspaceSocket = (io, socket) => {
   ============================== */
   socket.on("disconnect", () => {
     activeWorkspaceUsers.forEach((users, workspaceId) => {
-      if (socket.user && users.has(socket.user._id.toString())) {
-        users.delete(socket.user._id.toString());
+      if (socket.data?.user && users.has(socket.data.user.id)) {
+        users.delete(socket.data.user.id);
 
         io.to(`workspace_${workspaceId}`).emit("workspaceUsersUpdate", {
           workspaceId,

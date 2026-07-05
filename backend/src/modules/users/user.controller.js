@@ -47,6 +47,7 @@ export const registerUser = async (req, res, next) => {
       message: "User registered successfully",
       data: {
         user,
+        token,
       },
     });
   } catch (error) {
@@ -91,6 +92,7 @@ export const loginUser = async (req, res, next) => {
       message: "Login successfull",
       data: {
         user,
+        token,
       },
     });
   } catch (error) {
@@ -130,6 +132,7 @@ export const sendOtp = async (req, res) => {
 
     // Generate 6-digit OTP
     const otp = crypto.randomInt(100000, 999999).toString();
+    console.log(`🔑 OTP generated for ${email}: ${otp}`);
 
     // Delete old OTPs for this email
     await prisma.otp.deleteMany({
@@ -234,7 +237,8 @@ export const verifyOtp = async (req, res) => {
       status: "success",
       message: "OTP verified successfully",
       data: {
-        user, // ✅ token remove kar sakta hai (optional)
+        user,
+        token,
       },
     });
   } catch (error) {

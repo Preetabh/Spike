@@ -1,25 +1,12 @@
-/* =========================================================
-   ENTERPRISE TYPING SOCKET SYSTEM (Slack-Level)
-========================================================= */
-
-// channelId -> Set of userIds currently typing
-const typingUsers = new Map();
-
 const typingSocket = (io, socket) => {
   /* ==============================
      USER START TYPING
   ============================== */
-  socket.on("typing-start", ({ roomId, roomType }) => {
-    const room =
-      roomType === "dm"
-        ? `dm_${roomId}`
-        : roomType === "group"
-        ? `group_${roomId}`
-        : `channel_${roomId}`;
+  socket.on("typing-start", ({ conversationId }) => {
+    if (!conversationId) return;
 
-    socket.to(room).emit("user-typing", {
-      roomId,
-      roomType,
+    socket.to(`conversation_${conversationId}`).emit("user-typing", {
+      conversationId,
       user: {
         id: socket.data.user.id,
         fullName: socket.data.user.fullName,
@@ -30,17 +17,11 @@ const typingSocket = (io, socket) => {
   /* ==============================
      USER STOP TYPING
   ============================== */
-  socket.on("typing-stop", ({ roomId, roomType }) => {
-    const room =
-      roomType === "dm"
-        ? `dm_${roomId}`
-        : roomType === "group"
-        ? `group_${roomId}`
-        : `channel_${roomId}`;
+  socket.on("typing-stop", ({ conversationId }) => {
+    if (!conversationId) return;
 
-    socket.to(room).emit("user-stop-typing", {
-      roomId,
-      roomType,
+    socket.to(`conversation_${conversationId}`).emit("user-stop-typing", {
+      conversationId,
       userId: socket.data.user.id,
     });
   });

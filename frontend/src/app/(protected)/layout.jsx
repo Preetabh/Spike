@@ -26,8 +26,11 @@ export default function ProtectedLayout({ children }) {
   });
 
   useEffect(() => {
-    if (user?.appearance) {
-      applyTheme(user.appearance.mode, user.appearance.theme);
+    if (user) {
+      applyTheme(
+        user.appearanceMode || user.appearance?.mode || "dark",
+        user.theme || user.appearance?.theme || "rose"
+      );
     }
   }, [user]);
 

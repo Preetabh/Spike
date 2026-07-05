@@ -1,50 +1,61 @@
-import Channel from "../../models/channel-model.js";
-import Workspace from "../../models/workspace-model.js";
+import prisma from "../../db/db.js";
 
 /* ======================================================
    CREATE CHANNEL
 ====================================================== */
 export const createChannel = async (req, res, next) => {
   try {
-    const { name, workspaceId, type = "public", members = [] } = req.body;
+    const { name, workspaceId, type = "public", description = "" } = req.body;
 
     if (!name || !workspaceId) {
       return res.status(400).json({ message: "Name and workspaceId required" });
     }
 
-    const workspace = await Workspace.findById(workspaceId);
+    // Verify user is member of workspace
+    const workspace = await prisma.workspace.findFirst({
+      where: {
+        id: workspaceId,
+        members: { some: { id: req.user.id } },
+      },
+    });
+
     if (!workspace) {
-      return res.status(404).json({ message: "Workspace not found" });
-    }
-
-    const isMember = workspace.members.some(
-      (m) => m.toString() === req.user._id.toString()
-    );
-
-    if (!isMember) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    let channelMembers = [req.user._id];
+    const conversationType = type === "private" ? "private_channel" : "workspace_channel";
 
-    if (type === "private" && members.length > 0) {
-      channelMembers = [...new Set([...members, req.user._id.toString()])];
-    }
-
-    const channel = await Channel.create({
-      name,
-      workspace: workspaceId,
-      type,
-      members: channelMembers,
-      createdBy: req.user._id,
+    const channel = await prisma.conversation.create({
+      data: {
+        title: name,
+        description,
+        type: conversationType,
+        workspaceId,
+        createdById: req.user.id,
+        members: {
+          create: {
+            userId: req.user.id,
+            role: "admin",
+          },
+        },
+      },
+      include: {
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+      },
     });
 
-    const populated = await channel.populate(
-      "members",
-      "fullName email profilePic"
-    );
-
-    res.status(201).json(populated);
+    res.status(201).json(channel);
   } catch (error) {
     next(error);
   }
@@ -55,216 +66,42 @@ export const createChannel = async (req, res, next) => {
 ====================================================== */
 export const getWorkspaceChannels = async (req, res, next) => {
   try {
-    const { workspaceId } = req.params;
-    const data = [
-      {
-        _id: "123",
-        name: "general",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u1",
-            fullName: "John Doe",
-            email: "john.doe@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      },
-        {
-        _id: "1234",
-        name: "general2",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u123",
-            fullName: "John Doe12",
-            email: "john.doe12@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      },
-      {
-        _id: "12345",
-        name: "general23",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u1233",
-            fullName: "John Doe123",
-            email: "john.doe123@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      },
-      {
-        _id: "123456",
-        name: "general234",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u12334",
-            fullName: "John Doe123",
-            email: "john.doe123@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      },
-      {
-        _id: "123454",
-        name: "general234",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u1233",
-            fullName: "John Doe123",
-            email: "john.doe123@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      },
-      {
-        _id: "1234534",
-        name: "general2334",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u1233",
-            fullName: "John Doe123",
-            email: "john.doe123@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      },
-      {
-        _id: "1234545",
-        name: "general2345",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u1233",
-            fullName: "John Doe123",
-            email: "john.doe123@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      },
-      {
-        _id: "1234556",
-        name: "general2356",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u1233",
-            fullName: "John Doe123",
-            email: "john.doe123@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      },
-      {
-        _id: "1234567",
-        name: "general2367",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u1233",
-            fullName: "John Doe123",
-            email: "john.doe123@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      },
-      {
-        _id: "1234589",
-        name: "general2334",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u1233",
-            fullName: "John Doe123",
-            email: "john.doe123@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      },
-      {
-        _id: "1234512",
-        name: "general2312",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u123312",
-            fullName: "John Doe12312",
-            email: "john.doe123@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      },
-      {
-        _id: "12345345",
-        name: "general23324",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u12335",
-            fullName: "John Doe1237",
-            email: "john.doe123@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      },
-      {
-        _id: "1234567",
-        name: "general231",
-        workspace: workspaceId,
-        type: "public",
-        members: [
-          {
-            _id: "u123390",
-            fullName: "John Doe1234",
-            email: "john.doe123@example.com",
-            profilePic: "https://example.com/avatar.jpg"
-          }
-        ]
-      }
+    const workspaceId = req.query.workspace || req.query.workspaceId || req.params.workspaceId;
 
-    ]
-    res.status(200).json(data);
+    if (!workspaceId) {
+      return res.status(400).json({ message: "Workspace ID is required" });
+    }
 
-    // const workspace = await Workspace.findById(workspaceId);
-    // if (!workspace) {
-    //   return res.status(404).json({ message: "Workspace not found" });
-    // }
+    const channels = await prisma.conversation.findMany({
+      where: {
+        workspaceId,
+        type: {
+          in: ["workspace_channel", "private_channel"],
+        },
+        members: {
+          some: {
+            userId: req.user.id,
+          },
+        },
+        isDeleted: false,
+      },
+      include: {
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
-    // const isMember = workspace.members.some(
-    //   (m) => m.toString() === req.user._id.toString()
-    // );
-
-    // if (!isMember) {
-    //   return res.status(403).json({ message: "Access denied" });
-    // }
-
-    // const channels = await Channel.find({
-    //   workspace: workspaceId,
-    //   isDeleted: false,
-    // })
-    //   .populate("createdBy", "fullName email")
-    //   .populate("lastMessage")
-    //   .sort({ createdAt: 1 });
-
-    // res.status(200).json(channels);
+    res.status(200).json(channels);
   } catch (error) {
     next(error);
   }
@@ -277,13 +114,44 @@ export const getChannelById = async (req, res, next) => {
   try {
     const { channelId } = req.params;
 
-    const channel = await Channel.findById(channelId)
-      .populate("members", "fullName email profilePic")
-      .populate("createdBy", "fullName email")
-      .populate("lastMessage");
+    const channel = await prisma.conversation.findFirst({
+      where: {
+        id: channelId,
+        type: {
+          in: ["workspace_channel", "private_channel"],
+        },
+        members: {
+          some: {
+            userId: req.user.id,
+          },
+        },
+        isDeleted: false,
+      },
+      include: {
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+    });
 
-    if (!channel || channel.isDeleted) {
-      return res.status(404).json({ message: "Channel not found" });
+    if (!channel) {
+      return res.status(404).json({ message: "Channel not found or access denied" });
     }
 
     res.status(200).json(channel);
@@ -300,17 +168,23 @@ export const updateChannel = async (req, res, next) => {
     const { channelId } = req.params;
     const { name, description } = req.body;
 
-    const channel = await Channel.findById(channelId);
-    if (!channel) {
+    const channel = await prisma.conversation.findUnique({
+      where: { id: channelId },
+    });
+
+    if (!channel || channel.isDeleted) {
       return res.status(404).json({ message: "Channel not found" });
     }
 
-    channel.name = name || channel.name;
-    channel.description = description || channel.description;
+    const updated = await prisma.conversation.update({
+      where: { id: channelId },
+      data: {
+        title: name || channel.title,
+        description: description !== undefined ? description : channel.description,
+      },
+    });
 
-    await channel.save();
-
-    res.status(200).json(channel);
+    res.status(200).json(updated);
   } catch (error) {
     next(error);
   }
@@ -323,13 +197,10 @@ export const deleteChannel = async (req, res, next) => {
   try {
     const { channelId } = req.params;
 
-    const channel = await Channel.findById(channelId);
-    if (!channel) {
-      return res.status(404).json({ message: "Channel not found" });
-    }
-
-    channel.isDeleted = true;
-    await channel.save();
+    await prisma.conversation.update({
+      where: { id: channelId },
+      data: { isDeleted: true },
+    });
 
     res.status(200).json({ message: "Channel deleted successfully" });
   } catch (error) {
@@ -344,63 +215,69 @@ export const archiveChannel = async (req, res, next) => {
   try {
     const { channelId } = req.params;
 
-    const channel = await Channel.findById(channelId);
-    if (!channel) {
-      return res.status(404).json({ message: "Channel not found" });
-    }
+    const updated = await prisma.conversation.update({
+      where: { id: channelId },
+      data: { isArchived: true },
+    });
 
-    channel.isArchived = true;
-    await channel.save();
-
-    res.status(200).json({ message: "Channel archived" });
+    res.status(200).json(updated);
   } catch (error) {
     next(error);
   }
 };
 
 /* ======================================================
-   ADD MEMBER
+   ADD MEMBER TO CHANNEL
 ====================================================== */
 export const addChannelMember = async (req, res, next) => {
   try {
     const { channelId } = req.params;
-    const { userId } = req.body;
+    const { userId, role = "member" } = req.body;
 
-    const channel = await Channel.findById(channelId);
-    if (!channel) {
-      return res.status(404).json({ message: "Channel not found" });
+    const existing = await prisma.conversationMember.findUnique({
+      where: {
+        conversationId_userId: {
+          conversationId: channelId,
+          userId,
+        },
+      },
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: "User is already a member" });
     }
 
-    if (!channel.members.includes(userId)) {
-      channel.members.push(userId);
-      await channel.save();
-    }
+    const newMember = await prisma.conversationMember.create({
+      data: {
+        conversationId: channelId,
+        userId,
+        role,
+      },
+    });
 
-    res.status(200).json(channel);
+    res.status(201).json(newMember);
   } catch (error) {
     next(error);
   }
 };
 
 /* ======================================================
-   REMOVE MEMBER
+   REMOVE MEMBER FROM CHANNEL
 ====================================================== */
 export const removeChannelMember = async (req, res, next) => {
   try {
     const { channelId, userId } = req.params;
 
-    const channel = await Channel.findById(channelId);
-    if (!channel) {
-      return res.status(404).json({ message: "Channel not found" });
-    }
+    await prisma.conversationMember.delete({
+      where: {
+        conversationId_userId: {
+          conversationId: channelId,
+          userId,
+        },
+      },
+    });
 
-    channel.members = channel.members.filter(
-      (m) => m.toString() !== userId
-    );
-
-    await channel.save();
-
-    res.status(200).json({ message: "Member removed" });
+    res.status(200).json({ message: "Member removed successfully" });
   } catch (error) {
     next(error);
   }

@@ -7,7 +7,7 @@ const Channel = () => {
   return (
     <div className="flex h-full overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)] transition-all duration-300">
       {/* LEFT SIDEBAR */}
-      <div className="relative w-[390px] border-r border-[color:var(--border)] bg-[color:var(--sidebar)] text-[color:var(--sidebar-foreground)] flex flex-col overflow-hidden backdrop-blur-xl transition-all duration-300">
+      <div className="relative w-full md:w-[390px] border-r border-[color:var(--border)] bg-[color:var(--sidebar)] text-[color:var(--sidebar-foreground)] flex flex-col overflow-hidden backdrop-blur-xl transition-all duration-300">
         {/* TOP GLOW */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-52 bg-gradient-to-b from-[color:var(--primary)]/10 to-transparent"></div>
@@ -51,7 +51,7 @@ const Channel = () => {
       </div>
 
       {/* RIGHT SECTION */}
-      <div className="relative flex-1 flex flex-col bg-[color:var(--background)] overflow-hidden transition-all duration-300">
+      <div className="relative hidden md:flex flex-1 flex-col bg-[color:var(--background)] overflow-hidden transition-all duration-300">
         {/* DECORATIVE GLOW */}
         <div className="absolute top-0 right-0 w-[450px] h-[450px] rounded-full bg-[color:var(--primary)]/5 blur-3xl pointer-events-none"></div>
 

@@ -56,6 +56,23 @@ export const createWorkspace = async (req, res) => {
       },
     });
 
+    // Automatically create a default general channel
+    await prisma.conversation.create({
+      data: {
+        title: "general",
+        description: "Default channel for the workspace",
+        type: "workspace_channel",
+        workspaceId: workspace.id,
+        createdById: req.user.id,
+        members: {
+          create: {
+            userId: req.user.id,
+            role: "admin",
+          },
+        },
+      },
+    });
+
     res.status(201).json(workspace);
   } catch (error) {
     res.status(500).json({ message: error.message });
