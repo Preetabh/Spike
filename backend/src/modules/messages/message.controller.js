@@ -129,6 +129,7 @@ export const getConversationMessages = async (req, res, next) => {
   try {
     const { conversationId } = req.params;
     const userId = req.user.id;
+    const limit = req.query.limit ? parseInt(req.query.limit) : undefined;
 
     const member = await prisma.conversationMember.findFirst({
       where: {
@@ -147,6 +148,11 @@ export const getConversationMessages = async (req, res, next) => {
       where: {
         conversationId,
         isDeleted: false,
+        deletedFor: {
+          none: {
+            id: userId,
+          },
+        },
       },
       include: {
         sender: {
@@ -156,11 +162,66 @@ export const getConversationMessages = async (req, res, next) => {
             avatar: true,
           },
         },
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+        seenBy: {
+          select: {
+            id: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: "asc",
+        createdAt: limit ? "desc" : "asc",
       },
+      take: limit,
     });
+
+    if (limit) {
+      messages.reverse();
+    }
+
+    // Mark messages as seen by connecting the user to seenBy relation
+    const unseenMessages = messages.filter(
+      (m) => m.senderId !== userId && !m.seenBy.some((u) => u.id === userId)
+    );
+
+    if (unseenMessages.length > 0) {
+      await Promise.all(
+        unseenMessages.map((m) =>
+          prisma.message.update({
+            where: { id: m.id },
+            data: {
+              seenBy: {
+                connect: { id: userId },
+              },
+            },
+          })
+        )
+      );
+
+      // Add the user to the local object so response includes it
+      unseenMessages.forEach((m) => {
+        m.seenBy.push({ id: userId });
+      });
+
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`conversation_${conversationId}`).emit("messages-seen", {
+          conversationId,
+          userId,
+          messageIds: unseenMessages.map((m) => m.id),
+        });
+      }
+    }
 
     // Update conversation read tracking for this user
     if (messages.length > 0) {
@@ -214,7 +275,32 @@ export const editMessage = async (req, res, next) => {
         isEdited: true,
         editedAt: new Date(),
       },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            fullName: true,
+            avatar: true,
+          },
+        },
+        reactions: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                avatar: true,
+              },
+            },
+          },
+        },
+      },
     });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`conversation_${message.conversationId}`).emit("message-edited", updatedMessage);
+    }
 
     res.json(updatedMessage);
   } catch (error) {
@@ -223,29 +309,50 @@ export const editMessage = async (req, res, next) => {
 };
 
 /* =====================================
-   DELETE MESSAGE (SOFT)
+   DELETE MESSAGE
 ===================================== */
 export const deleteMessage = async (req, res, next) => {
   try {
     const { messageId } = req.params;
+    const { type = "everyone" } = req.body; // "me" or "everyone"
 
     const message = await prisma.message.findUnique({
       where: { id: messageId },
     });
     if (!message) return res.status(404).json({ message: "Message not found" });
 
-    if (message.senderId !== req.user.id) {
-      return res.status(403).json({ message: "Not authorized" });
+    if (type === "everyone") {
+      if (message.senderId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      await prisma.message.update({
+        where: { id: messageId },
+        data: {
+          isDeleted: true,
+        },
+      });
+
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`conversation_${message.conversationId}`).emit("message-deleted", {
+          messageId,
+          conversationId: message.conversationId,
+          type: "everyone",
+        });
+      }
+    } else if (type === "me") {
+      await prisma.message.update({
+        where: { id: messageId },
+        data: {
+          deletedFor: {
+            connect: { id: req.user.id },
+          },
+        },
+      });
     }
 
-    await prisma.message.update({
-      where: { id: messageId },
-      data: {
-        isDeleted: true,
-      },
-    });
-
-    res.json({ message: "Message deleted" });
+    res.json({ message: "Message deleted successfully", type });
   } catch (error) {
     next(error);
   }
@@ -270,7 +377,26 @@ export const addReaction = async (req, res, next) => {
         userId: req.user.id,
         emoji,
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            avatar: true,
+          },
+        },
+      },
     });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`conversation_${message.conversationId}`).emit("reaction-updated", {
+        messageId,
+        conversationId: message.conversationId,
+        action: "added",
+        reaction,
+      });
+    }
 
     res.json(reaction);
   } catch (error) {
@@ -284,13 +410,31 @@ export const addReaction = async (req, res, next) => {
 export const removeReaction = async (req, res, next) => {
   try {
     const { messageId } = req.params;
+    const { emoji } = req.body;
+
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+    });
+    if (!message) return res.status(404).json({ message: "Message not found" });
 
     await prisma.messageReaction.deleteMany({
       where: {
         messageId,
         userId: req.user.id,
+        ...(emoji ? { emoji } : {}),
       },
     });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`conversation_${message.conversationId}`).emit("reaction-updated", {
+        messageId,
+        conversationId: message.conversationId,
+        action: "removed",
+        userId: req.user.id,
+        emoji,
+      });
+    }
 
     res.json({ message: "Reaction removed" });
   } catch (error) {

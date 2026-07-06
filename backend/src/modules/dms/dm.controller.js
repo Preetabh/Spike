@@ -271,6 +271,7 @@ export const getDMById = async (req, res, next) => {
             email: true,
             avatar: true,
             isOnline: true,
+            lastSeen: true,
           },
         },
       },

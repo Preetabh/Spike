@@ -2,7 +2,7 @@ import React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Phone, Video, MoreVertical } from "lucide-react";
 
-const ChatHeader = ({ chat }) => {
+const ChatHeader = ({ chat, onToggleDrawer }) => {
   const router = useRouter();
   const params = useParams();
   const workspaceId = params?.id;
@@ -40,10 +40,16 @@ const ChatHeader = ({ chat }) => {
       </div>
 
       {/* Left section */}
-      <div className="relative z-10 flex items-center gap-2 md:gap-4 min-w-0">
+      <div
+        onClick={onToggleDrawer}
+        className="relative z-10 flex items-center gap-2 md:gap-4 min-w-0 cursor-pointer hover:opacity-90 active:scale-[0.99] transition select-none group"
+      >
         {/* Back button on mobile */}
         <button
-          onClick={handleBack}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleBack();
+          }}
           className="md:hidden p-2 mr-1 rounded-xl border border-white/10 bg-neutral-900/60 hover:bg-neutral-800 text-white active:scale-95 transition"
           aria-label="Go back"
         >
@@ -51,13 +57,13 @@ const ChatHeader = ({ chat }) => {
         </button>
 
         {/* Avatar */}
-        <div className={`w-10 h-10 md:w-11 md:h-11 rounded-[16px] bg-gradient-to-br ${typeGradient[chat?.type || "dm"]} text-white flex items-center justify-center font-extrabold text-sm md:text-base shadow-lg border border-white/10 transition-transform duration-300 hover:scale-105 select-none`}>
+        <div className={`w-10 h-10 md:w-11 md:h-11 rounded-[16px] bg-gradient-to-br ${typeGradient[chat?.type || "dm"]} text-white flex items-center justify-center font-extrabold text-sm md:text-base shadow-lg border border-white/10 transition-transform duration-300 group-hover:scale-105 select-none`}>
           {avatarInitials}
         </div>
 
         {/* Chat Info */}
         <div className="min-w-0">
-          <h2 className="text-white font-bold text-sm md:text-base truncate tracking-tight">
+          <h2 className="text-white font-bold text-sm md:text-base truncate tracking-tight group-hover:text-purple-300 transition">
             {chat?.name}
           </h2>
 
@@ -106,6 +112,7 @@ const ChatHeader = ({ chat }) => {
         </button>
 
         <button
+          onClick={onToggleDrawer}
           aria-label="options"
           className="w-9 h-9 md:w-10 md:h-10 rounded-xl border border-white/5 bg-neutral-900/50 hover:bg-neutral-800 text-neutral-400 hover:text-white transition duration-200 flex items-center justify-center shadow-lg active:scale-95"
         >

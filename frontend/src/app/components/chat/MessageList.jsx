@@ -1,6 +1,6 @@
 import MessageBubble from "./MessageBubble";
 
-const MessageList = ({ messages = [], currentUserId }) => {
+const MessageList = ({ messages = [], currentUserId, loadMore, hasMore }) => {
   return (
     <div className="relative flex-1 min-h-0 overflow-y-scroll  h-[60vh] overflow-x-hidden bg-[color:var(--background)] px-3 sm:px-4 md:px-6 pt-4 sm:pt-6 pb-10 no-scrollbar">
       {/* Background Glow Effects */}
@@ -11,6 +11,18 @@ const MessageList = ({ messages = [], currentUserId }) => {
       </div>
 
       <div className="relative z-10">
+        {/* Load More Button */}
+        {hasMore && (
+          <div className="flex justify-center mb-6">
+            <button
+              onClick={loadMore}
+              className="px-4 py-1.5 rounded-full bg-neutral-900/60 hover:bg-neutral-800 border border-white/10 text-xs font-semibold text-neutral-300 hover:text-white transition active:scale-95 shadow-md cursor-pointer"
+            >
+              Load Older Messages
+            </button>
+          </div>
+        )}
+
         {/* Date Divider */}
         <div className="flex items-center justify-center mb-5 sm:mb-8">
           <div className="px-4 py-1.5 rounded-full bg-[color:var(--card)] border border-[color:var(--border)] text-xs text-[color:var(--muted-foreground)] shadow-lg backdrop-blur-xl transition-all duration-300">

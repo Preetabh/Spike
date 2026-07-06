@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Home,
   Hash,
@@ -26,9 +26,29 @@ export default function SidebarNav({
   const [openProfile, setOpenProfile] = useState(false);
   const [workspaceSettings, setOpenWorkspaceSettings] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   const workspaceInitials = workspace?.name?.charAt(0) || "W";
   const userInitials = user?.fullName?.charAt(0) || "U";
+
+  const isHomeActive = pathname === `/workspace/${id}`;
+  const isChannelsActive = pathname.startsWith(`/workspace/${id}/channels`);
+  const isDmActive = pathname.startsWith(`/workspace/${id}/dm`);
+  const isGroupsActive = pathname.startsWith(`/workspace/${id}/groups`);
+
+  const getLinkClasses = (isActive) => {
+    return `flex flex-col items-center gap-1.5 transition-all duration-200 ${
+      isActive ? "text-white scale-105 font-bold" : "text-neutral-400 hover:text-white hover:scale-105 active:scale-95"
+    }`;
+  };
+
+  const getIconContainerClasses = (isActive) => {
+    return `w-10 h-10 rounded-xl border flex items-center justify-center transition duration-200 relative group ${
+      isActive
+        ? "bg-[color:var(--primary)] border-[color:var(--primary)]/60 text-white shadow-[0_0_14px_rgba(97,31,105,0.4)]"
+        : "bg-neutral-900/50 border-white/5 text-neutral-300 hover:text-white hover:bg-neutral-800"
+    }`;
+  };
 
   return (
     <div className="w-20 bg-[#09090b]/80 text-neutral-400 hidden md:flex flex-col items-center py-6 gap-8 font-medium border-r border-white/5 relative z-20 backdrop-blur-xl">
@@ -41,9 +61,10 @@ export default function SidebarNav({
       <div className="flex flex-col gap-7 text-[10px] uppercase tracking-wider items-center mt-4 w-full">
         <Link
           href={`/workspace/${id}`}
-          className="flex flex-col items-center gap-1.5 hover:text-white hover:scale-105 active:scale-95 transition-all duration-200"
+          className={getLinkClasses(isHomeActive)}
         >
-          <div className="w-10 h-10 rounded-xl bg-neutral-900/50 hover:bg-neutral-800 border border-white/5 flex items-center justify-center text-neutral-300 hover:text-white transition">
+          <div className={getIconContainerClasses(isHomeActive)}>
+            {isHomeActive && <span className="absolute left-[-4px] top-1/4 bottom-1/4 w-1 bg-white rounded-r-full"></span>}
             <Home size={18} />
           </div>
           <span>Home</span>
@@ -51,9 +72,10 @@ export default function SidebarNav({
 
         <Link
           href={`/workspace/${id}/channels`}
-          className="flex flex-col items-center gap-1.5 hover:text-white hover:scale-105 active:scale-95 transition-all duration-200"
+          className={getLinkClasses(isChannelsActive)}
         >
-          <div className="w-10 h-10 rounded-xl bg-neutral-900/50 hover:bg-neutral-800 border border-white/5 flex items-center justify-center text-neutral-300 hover:text-white transition">
+          <div className={getIconContainerClasses(isChannelsActive)}>
+            {isChannelsActive && <span className="absolute left-[-4px] top-1/4 bottom-1/4 w-1 bg-white rounded-r-full"></span>}
             <Hash size={18} />
           </div>
           <span>Channels</span>
@@ -61,9 +83,10 @@ export default function SidebarNav({
 
         <Link
           href={`/workspace/${id}/dm`}
-          className="flex flex-col items-center gap-1.5 hover:text-white hover:scale-105 active:scale-95 transition-all duration-200"
+          className={getLinkClasses(isDmActive)}
         >
-          <div className="w-10 h-10 rounded-xl bg-neutral-900/50 hover:bg-neutral-800 border border-white/5 flex items-center justify-center text-neutral-300 hover:text-white transition">
+          <div className={getIconContainerClasses(isDmActive)}>
+            {isDmActive && <span className="absolute left-[-4px] top-1/4 bottom-1/4 w-1 bg-white rounded-r-full"></span>}
             <MessageCircle size={18} />
           </div>
           <span>Messages</span>
@@ -71,9 +94,10 @@ export default function SidebarNav({
 
         <Link
           href={`/workspace/${id}/groups`}
-          className="flex flex-col items-center gap-1.5 hover:text-white hover:scale-105 active:scale-95 transition-all duration-200"
+          className={getLinkClasses(isGroupsActive)}
         >
-          <div className="w-10 h-10 rounded-xl bg-neutral-900/50 hover:bg-neutral-800 border border-white/5 flex items-center justify-center text-neutral-300 hover:text-white transition">
+          <div className={getIconContainerClasses(isGroupsActive)}>
+            {isGroupsActive && <span className="absolute left-[-4px] top-1/4 bottom-1/4 w-1 bg-white rounded-r-full"></span>}
             <Users size={18} />
           </div>
           <span>Groups</span>

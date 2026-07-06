@@ -306,3 +306,25 @@
 .animate-list-appear {
   animation: listAppear 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+@keyframes floatEmoji {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.4) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-20px) scale(1.3) rotate(5deg);
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-90px) scale(0.7) rotate(-5deg);
+  }
+}
+
+.animate-float-emoji {
+  animation: floatEmoji 1.1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
