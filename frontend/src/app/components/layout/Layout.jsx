@@ -112,10 +112,20 @@ export default function Layout({
       // Also invalidate conversation details in case it's currently open
       queryClient.invalidateQueries(["conversation"]);
 
-      // Push notification fallback when browser window is in background
-      if (document.hidden) {
+      // Check if current user is mentioned in message content
+      const isMention = user?.fullName && (
+        message.content?.toLowerCase().includes(`@${user.fullName.toLowerCase().replace(/\s+/g, "")}`) ||
+        message.content?.toLowerCase().includes(`@${user.fullName.toLowerCase()}`)
+      );
+
+      // Push notification when browser window is in background or if user is mentioned
+      if ((document.hidden || isMention) && message.senderId !== user?.id) {
         if (Notification.permission === "granted") {
-          new Notification(`Spike: Message from ${message.sender?.fullName || "Team"}`, {
+          const title = isMention 
+            ? `🚨 Mentioned by ${message.sender?.fullName || "User"}`
+            : `New message from ${message.sender?.fullName || "User"}`;
+            
+          new Notification(title, {
             body: message.content,
             icon: message.sender?.avatar || "/favicon.ico",
           });

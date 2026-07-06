@@ -92,15 +92,20 @@ export const getWorkspaceChannels = async (req, res, next) => {
     const channels = await prisma.conversation.findMany({
       where: {
         workspaceId,
-        type: {
-          in: ["workspace_channel", "private_channel"],
-        },
-        members: {
-          some: {
-            userId,
-          },
-        },
         isDeleted: false,
+        OR: [
+          {
+            type: "workspace_channel",
+          },
+          {
+            type: "private_channel",
+            members: {
+              some: {
+                userId,
+              },
+            },
+          },
+        ],
       },
       include: {
         lastMessage: {
@@ -243,6 +248,16 @@ export const updateChannel = async (req, res, next) => {
       return res.status(404).json({ message: "Channel not found" });
     }
 
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: channel.workspaceId },
+    });
+
+    if (workspace?.ownerId !== req.user.id) {
+      return res.status(403).json({ 
+        message: "Access denied. Only workspace admins can update channels." 
+      });
+    }
+
     const updated = await prisma.conversation.update({
       where: { id: channelId },
       data: {
@@ -264,6 +279,24 @@ export const deleteChannel = async (req, res, next) => {
   try {
     const { channelId } = req.params;
 
+    const channel = await prisma.conversation.findUnique({
+      where: { id: channelId },
+    });
+
+    if (!channel || channel.isDeleted) {
+      return res.status(404).json({ message: "Channel not found" });
+    }
+
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: channel.workspaceId },
+    });
+
+    if (workspace?.ownerId !== req.user.id) {
+      return res.status(403).json({ 
+        message: "Access denied. Only workspace admins can delete channels." 
+      });
+    }
+
     await prisma.conversation.update({
       where: { id: channelId },
       data: { isDeleted: true },
@@ -281,6 +314,24 @@ export const deleteChannel = async (req, res, next) => {
 export const archiveChannel = async (req, res, next) => {
   try {
     const { channelId } = req.params;
+
+    const channel = await prisma.conversation.findUnique({
+      where: { id: channelId },
+    });
+
+    if (!channel || channel.isDeleted) {
+      return res.status(404).json({ message: "Channel not found" });
+    }
+
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: channel.workspaceId },
+    });
+
+    if (workspace?.ownerId !== req.user.id) {
+      return res.status(403).json({ 
+        message: "Access denied. Only workspace admins can archive channels." 
+      });
+    }
 
     const updated = await prisma.conversation.update({
       where: { id: channelId },

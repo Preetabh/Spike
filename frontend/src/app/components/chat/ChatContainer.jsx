@@ -69,6 +69,8 @@ const ChatContainer = () => {
   let selectedChatName = "Select a conversation";
   let selectedChatAvatar = "";
   let selectedChatOnline = false;
+  let selectedChatLastSeen = null;
+  let selectedChatIsPrivate = false;
   let conversationId = null;
 
   if (data) {
@@ -76,11 +78,13 @@ const ChatContainer = () => {
       selectedChatName = data?.user?.fullName || data?.user?.name || "Direct Message";
       selectedChatAvatar = data?.user?.avatar || "";
       selectedChatOnline = data?.user?.isOnline || false;
+      selectedChatLastSeen = data?.user?.lastSeen || null;
       conversationId = data?.conversation?.id;
     } else if (chatType === "channel") {
       selectedChatName = `# ${data?.title || data?.name || "channel"}`;
       selectedChatAvatar = "";
       selectedChatOnline = false;
+      selectedChatIsPrivate = data?.type === "private_channel";
       conversationId = data?.id;
     } else if (chatType === "group") {
       selectedChatName = `👥 ${data?.title || data?.name || "group"}`;

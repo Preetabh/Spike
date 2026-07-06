@@ -48,7 +48,27 @@ const MessageBubble = ({ message, currentUserId }) => {
 
           {/* Message Text */}
           <p className="text-[13px] sm:text-[14px] leading-relaxed break-words break-all whitespace-pre-wrap overflow-hidden text-neutral-100/95">
-            {messageText}
+            {(() => {
+              if (!messageText) return "";
+              const parts = messageText.split(/(@[a-zA-Z0-9_\-\.]+)/g);
+              return parts.map((part, idx) => {
+                if (part.startsWith("@") && part.length > 1) {
+                  return (
+                    <span
+                      key={idx}
+                      className={`px-1.5 py-0.5 rounded-md font-bold text-[11px] inline-block mx-0.5 shadow-sm border border-transparent transition select-none ${
+                        isOwn
+                          ? "bg-white/20 text-white border-white/15"
+                          : "bg-[color:var(--primary)]/20 text-[color:var(--primary)] border-[color:var(--primary)]/25"
+                      }`}
+                    >
+                      {part}
+                    </span>
+                  );
+                }
+                return part;
+              });
+            })()}
           </p>
 
           {/* Time stamp */}
