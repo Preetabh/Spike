@@ -15,6 +15,26 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const savedMode = localStorage.getItem("app-mode") || "dark";
+                  const savedTheme = localStorage.getItem("app-theme") || "rose";
+                  const root = document.documentElement;
+                  root.classList.remove("dark");
+                  if (savedMode === "dark" || (savedMode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+                    root.classList.add("dark");
+                  }
+                  root.classList.add("theme-" + savedTheme);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={`${inter.className} antialiased text-[14px]`}>
         <Providers>
           {children}

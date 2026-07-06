@@ -11,6 +11,7 @@ import SettingHome from "../components/models/settingHome";
 
 export default function ProtectedLayout({ children }) {
   const [openSettings, setOpenSettings] = useState(false);
+  const [settingsTab, setSettingsTab] = useState("preferences");
 
   const fetchUser = async () => {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/users/me`, {
@@ -37,13 +38,16 @@ export default function ProtectedLayout({ children }) {
   return (
     <>
       {/* 🔥 MAIN LAYOUT */}
-      <Layout onOpenSettings={() => setOpenSettings(true)}>
+      <Layout onOpenSettings={(tab = "preferences") => {
+        setSettingsTab(tab);
+        setOpenSettings(true);
+      }}>
         {children}
       </Layout>
 
       {/* 🔥 SETTINGS MODAL */}
       {openSettings && (
-        <SettingHome onClose={() => setOpenSettings(false)} />
+        <SettingHome initialTab={settingsTab} onClose={() => setOpenSettings(false)} />
       )}
     </>
   );

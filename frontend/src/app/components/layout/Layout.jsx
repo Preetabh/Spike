@@ -20,7 +20,9 @@ export default function Layout({
   onOpenSettings,
 }) {
   const queryClient = useQueryClient();
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id;
+  const isChatOpen = Boolean(params?.memberId || params?.channelId || params?.groupId);
 
   const router = useRouter();
 
@@ -150,6 +152,9 @@ export default function Layout({
       <TopNavbar
         user={user}
         workspace={workspace}
+        className={isChatOpen ? "hidden" : ""}
+        onOpenSettings={onOpenSettings}
+        isOwner={isOwner}
       />
 
       {/* 🔥 MAIN AREA */}
@@ -172,7 +177,7 @@ export default function Layout({
       </div>
 
       {/* 🔥 MOBILE NAV */}
-      <MobileNavbar id={id} />
+      {!isChatOpen && <MobileNavbar id={id} />}
     </div>
   );
 }

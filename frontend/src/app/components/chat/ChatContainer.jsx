@@ -25,12 +25,7 @@ const ChatContainer = () => {
   const chatType = channelId ? "channel" : groupId ? "group" : "dm";
   const [typingUsers, setTypingUsers] = useState([]);
   const [showDrawer, setShowDrawer] = useState(false);
-  const [prevConversationId, setPrevConversationId] = useState(conversationId);
-
-  if (conversationId !== prevConversationId) {
-    setPrevConversationId(conversationId);
-    setTypingUsers([]);
-  }
+  const [prevConversationId, setPrevConversationId] = useState(null);
 
   // Fetch current user
   const { data: meData } = useQuery({
@@ -101,6 +96,13 @@ const ChatContainer = () => {
       conversationId = data?.id;
     }
   }
+
+  useEffect(() => {
+    if (conversationId !== prevConversationId) {
+      setPrevConversationId(conversationId);
+      setTypingUsers([]);
+    }
+  }, [conversationId, prevConversationId]);
 
   useConversationSocket(conversationId);
 

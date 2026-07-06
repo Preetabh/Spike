@@ -16,7 +16,7 @@ const MessageList = ({ messages = [], currentUserId, loadMore, hasMore }) => {
           <div className="flex justify-center mb-6">
             <button
               onClick={loadMore}
-              className="px-4 py-1.5 rounded-full bg-neutral-900/60 hover:bg-neutral-800 border border-white/10 text-xs font-semibold text-neutral-300 hover:text-white transition active:scale-95 shadow-md cursor-pointer"
+              className="px-4 py-1.5 rounded-full bg-muted/60 hover:bg-muted border border-border text-xs font-semibold text-muted-foreground hover:text-foreground transition active:scale-95 shadow-md cursor-pointer"
             >
               Load Older Messages
             </button>

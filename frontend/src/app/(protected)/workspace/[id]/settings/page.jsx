@@ -114,7 +114,7 @@ const SettingsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)] p-6">
+    <div className="min-h-screen bg-[color:var(--background)] text-[color:var(--foreground)] p-6 pb-24 md:pb-6">
       {/* Top Navbar */}
       <div className="flex gap-4 border-b border-[color:var(--border)] pb-4 mb-6 overflow-x-auto no-scrollbar">
         <Link

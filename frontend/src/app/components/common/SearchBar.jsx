@@ -24,7 +24,7 @@ const SearchBar = ({
       {/* Input */}
       <input
         type="text"
-        value={value}
+        value={onChange ? value : undefined}
         onChange={onChange}
         placeholder={placeholder}
         className="w-full h-14 rounded-2xl bg-[color:var(--background)] border border-[color:var(--border)] pl-12 pr-14 text-[color:var(--foreground)] placeholder:text-[color:var(--muted-foreground)] outline-none transition-all duration-300 focus:border-[color:var(--primary)]/50 focus:shadow-[0_0_20px_var(--primary,rgba(34,197,94,0.08))] hover:border-[color:var(--border)] text-[15px]"

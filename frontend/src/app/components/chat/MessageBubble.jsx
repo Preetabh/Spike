@@ -202,7 +202,7 @@ const MessageBubble = ({ message, currentUserId }) => {
           className={`relative px-3.5 py-2.5 rounded-[20px] shadow-2xl border transition-all duration-300 ${
             isOwn
               ? "bg-gradient-to-br from-[color:var(--primary)] to-[color:var(--accent)] text-white border-transparent rounded-br-sm shadow-[color:var(--primary)]/10"
-              : "bg-neutral-900/50 backdrop-blur-md text-neutral-100 border-white/5 rounded-bl-sm"
+              : "bg-muted/50 backdrop-blur-md text-foreground border-border rounded-bl-sm"
           }`}
         >
           {/* Glow Shading */}
@@ -251,7 +251,7 @@ const MessageBubble = ({ message, currentUserId }) => {
                 </div>
               </div>
             ) : (
-              <div className="text-[13px] sm:text-[14px] leading-relaxed break-words whitespace-pre-wrap overflow-hidden text-neutral-100/95">
+              <div className={`text-[13px] sm:text-[14px] leading-relaxed break-words whitespace-pre-wrap overflow-hidden ${isOwn ? "text-white/95" : "text-foreground/95"}`}>
                 {/* Parse mentions and format dynamically */}
                 {(() => {
                   if (!messageText) return "";
@@ -331,7 +331,7 @@ const MessageBubble = ({ message, currentUserId }) => {
                   className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition select-none active:scale-95 transform duration-150 ${
                     hasReacted
                       ? "bg-[color:var(--primary)]/10 text-[color:var(--primary)] border-[color:var(--primary)]/30 shadow-sm"
-                      : "bg-white/5 text-neutral-400 border-white/5 hover:border-white/10 hover:text-white"
+                      : "bg-muted text-muted-foreground border-border hover:border-muted-foreground/30 hover:text-foreground"
                   }`}
                 >
                   <span>{emoji}</span>

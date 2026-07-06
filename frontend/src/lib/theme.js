@@ -68,7 +68,7 @@ export function initTheme() {
   if (typeof window === "undefined") return;
 
   try {
-    const savedMode = localStorage.getItem("app-mode") || "light";
+    const savedMode = localStorage.getItem("app-mode") || "dark";
     const savedTheme = localStorage.getItem("app-theme") || "rose";
 
     applyTheme(savedMode, savedTheme);

@@ -149,11 +149,11 @@ const MessageInput = ({ conversationId }) => {
   };
 
   return (
-    <div className="relative w-full border-t border-white/5 bg-[#09090b]/80 px-4 py-3 pb-[72px] md:pb-4 backdrop-blur-xl transition-all duration-200">
+    <div className="relative w-full border-t border-border bg-card/85 px-4 py-3 pb-4 backdrop-blur-xl transition-all duration-200">
       {/* Floating autocomplete mentions dropdown */}
       {showMentions && filteredMembers.length > 0 && (
-        <div className="absolute bottom-full left-4 right-4 mb-2.5 z-50 max-h-48 overflow-y-auto rounded-2xl border border-white/10 bg-zinc-950/95 p-2 shadow-2xl backdrop-blur-2xl no-scrollbar animate-list-appear">
-          <div className="px-2.5 py-1 text-[10px] font-bold text-neutral-500 uppercase tracking-wider border-b border-white/5 mb-1.5">
+        <div className="absolute bottom-full left-4 right-4 mb-2.5 z-50 max-h-48 overflow-y-auto rounded-2xl border border-border bg-card p-2 shadow-2xl backdrop-blur-2xl no-scrollbar animate-list-appear">
+          <div className="px-2.5 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border mb-1.5">
             Workspace Members
           </div>
           <div className="space-y-1">
@@ -164,7 +164,7 @@ const MessageInput = ({ conversationId }) => {
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer transition select-none ${
                   idx === mentionIndex
                     ? "bg-[color:var(--primary)] text-white shadow-lg shadow-[color:var(--primary)]/20 animate-pulse-subtle"
-                    : "text-neutral-300 hover:bg-white/5 hover:text-white"
+                    : "text-foreground/85 hover:bg-accent hover:text-accent-foreground"
                 }`}
               >
                 <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-[10px] font-bold text-white uppercase border border-white/10">
@@ -174,7 +174,7 @@ const MessageInput = ({ conversationId }) => {
                   <span className="text-xs font-bold truncate">
                     {member.fullName || member.name}
                   </span>
-                  <span className={`text-[9px] ${idx === mentionIndex ? "text-white/70" : "text-neutral-500"} truncate`}>
+                  <span className={`text-[9px] ${idx === mentionIndex ? "text-white/70" : "text-muted-foreground"} truncate`}>
                     {member.email}
                   </span>
                 </div>
@@ -184,7 +184,7 @@ const MessageInput = ({ conversationId }) => {
         </div>
       )}
 
-      <div className="relative flex items-end gap-3 rounded-2xl border border-white/5 bg-neutral-900/40 hover:border-white/10 px-4 py-3 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:border-[color:var(--primary)]/50 focus-within:ring-1 focus-within:ring-[color:var(--primary)]/30">
+      <div className="relative flex items-end gap-3 rounded-2xl border border-border bg-muted/40 hover:border-border/80 px-4 py-3 shadow-2xl backdrop-blur-xl transition-all duration-300 focus-within:border-[color:var(--primary)]/50 focus-within:ring-1 focus-within:ring-[color:var(--primary)]/30">
         {/* subtle background glow */}
         <div className="absolute inset-0 pointer-events-none opacity-40 rounded-2xl">
           <div className="absolute inset-0 bg-gradient-to-r from-[color:var(--primary)]/5 to-[color:var(--accent)]/5 rounded-2xl"></div>
@@ -194,14 +194,14 @@ const MessageInput = ({ conversationId }) => {
         <div className="relative z-10 flex items-center gap-2 pb-0.5">
           <button
             aria-label="add"
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/5 transition duration-200 text-sm active:scale-90"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition duration-200 text-sm active:scale-90"
           >
             ➕
           </button>
 
           <button
             aria-label="emoji"
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/5 transition duration-200 text-sm active:scale-90"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition duration-200 text-sm active:scale-90"
           >
             😊
           </button>
@@ -216,16 +216,16 @@ const MessageInput = ({ conversationId }) => {
             onKeyDown={handleKeyDown}
             rows={1}
             placeholder="Type a message... use @ to mention"
-            className="w-full bg-transparent text-neutral-100 placeholder:text-neutral-500 resize-none outline-none text-[14px] sm:text-[15px] leading-6 max-h-32 overflow-y-auto pr-2 no-scrollbar"
+            className="w-full bg-transparent text-foreground placeholder:text-muted-foreground resize-none outline-none text-[14px] sm:text-[15px] leading-6 max-h-32 overflow-y-auto pr-2 no-scrollbar"
             aria-label="Message input"
           />
 
           {/* Bottom hint info */}
           <div className="flex items-center justify-between mt-1.5 gap-3 flex-wrap">
-            <p className="text-[10px] text-neutral-500 font-medium">
+            <p className="text-[10px] text-muted-foreground font-medium">
               Shift + Enter for newline
             </p>
-            <p className="text-[10px] text-neutral-500/80 font-medium">
+            <p className="text-[10px] text-muted-foreground/80 font-medium">
               Markdown supported
             </p>
           </div>
@@ -235,7 +235,7 @@ const MessageInput = ({ conversationId }) => {
         <div className="relative z-10 flex items-center gap-2 pb-0.5">
           <button
             aria-label="voice"
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/5 transition duration-200 text-sm active:scale-90"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition duration-200 text-sm active:scale-90"
           >
             🎤
           </button>
