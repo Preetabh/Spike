@@ -11,6 +11,7 @@ import {
   themeChange,
   updateProfile,
   verifyOtp,
+  updateFcmToken,
 } from "./user.controller.js";
 
 import { protect } from "../../middlewares/authMiddleware.js";
@@ -28,6 +29,7 @@ router.post("/verifyOtp", verifyOtp);
 // 👤 Profile Routes
 router.get("/me", protect, getProfile);
 router.put("/me", protect, updateProfile);
+router.put("/me/fcm-token", protect, updateFcmToken);
 router.put("/change-password", protect, changePassword);
 
 // 🔍 User Search (for DM / Add members)

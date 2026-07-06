@@ -145,17 +145,23 @@ const ChatContainer = () => {
     };
   }, [workspaceId, chatType, memberId, channelId, groupId, queryClient]);
 
-  if ((memberId || channelId || groupId) && (isLoading || messagesLoading)) {
+  const isInitialLoad = isLoading && !data;
+  const isInitialMessagesLoad = messagesLoading && messages.length === 0;
+
+  if ((memberId || channelId || groupId) && (isInitialLoad || isInitialMessagesLoad)) {
     return (
-      <div className="flex h-[100dvh] w-full items-center justify-center bg-[color:var(--background)]">
-        Loading...
+      <div className="flex h-full w-full items-center justify-center bg-[color:var(--background)] text-neutral-400">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-3 border-[color:var(--primary)] border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-xs font-semibold tracking-wider">Loading conversation...</span>
+        </div>
       </div>
     );
   }
 
   if (isError) {
     return (
-      <div className="flex h-[100dvh] w-full items-center justify-center bg-[color:var(--background)] text-red-500">
+      <div className="flex h-full w-full items-center justify-center bg-[color:var(--background)] text-red-500">
         Failed to load conversation.
       </div>
     );

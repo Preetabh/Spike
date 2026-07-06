@@ -66,13 +66,24 @@ const ChatHeader = ({ chat }) => {
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
             )}
             <span className="text-[10px] md:text-xs text-neutral-400 font-medium tracking-wide">
-              {isChannel
-                ? "Public Channel"
-                : isGroup
-                ? "Group Conversation"
-                : chat?.isOnline
-                ? "Online"
-                : "Offline"}
+              {(() => {
+                if (isChannel) return chat?.isPrivate ? "Private Channel" : "Public Channel";
+                if (isGroup) return "Group Conversation";
+                if (chat?.isOnline) return "Online";
+                if (chat?.lastSeen) {
+                  const date = new Date(chat.lastSeen);
+                  const now = new Date();
+                  const diffMs = now - date;
+                  const diffMins = Math.floor(diffMs / (1000 * 60));
+                  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                  
+                  if (diffMins < 1) return "Last seen just now";
+                  if (diffMins < 60) return `Last seen ${diffMins}m ago`;
+                  if (diffHours < 24) return `Last seen ${diffHours}h ago`;
+                  return `Last seen on ${date.toLocaleDateString([], { month: "short", day: "numeric" })}`;
+                }
+                return "Offline";
+              })()}
             </span>
           </div>
         </div>

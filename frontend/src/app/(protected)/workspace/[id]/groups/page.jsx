@@ -1,9 +1,17 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
+import { useParams } from "next/navigation";
 import ChatList from "../../../../components/chatList/ChatList";
 import ChatWelcome from "../../../../components/chat/ChatWelcome";
 import SearchBar from "../../../../components/common/SearchBar";
+import CreateGroupModal from "../../../../components/models/CreateGroupModal";
 
 const Groups = () => {
+  const params = useParams();
+  const workspaceId = params?.id;
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
   return (
     <div className="flex h-full overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)] transition-all duration-300">
       {/* LEFT SIDEBAR */}
@@ -27,7 +35,10 @@ const Groups = () => {
             </div>
 
             {/* CREATE GROUP */}
-            <button className="w-12 h-12 rounded-2xl bg-[color:var(--primary)] hover:bg-[color:var(--accent)] text-[color:var(--primary-foreground)] transition-all duration-300 flex items-center justify-center text-2xl font-medium shadow-lg active:scale-95 border border-[color:var(--border)] backdrop-blur-xl">
+            <button 
+              onClick={() => setIsCreateOpen(true)}
+              className="w-12 h-12 rounded-2xl bg-[color:var(--primary)] hover:bg-[color:var(--accent)] text-[color:var(--primary-foreground)] transition-all duration-300 flex items-center justify-center text-2xl font-medium shadow-lg active:scale-95 border border-[color:var(--border)] backdrop-blur-xl"
+            >
               +
             </button>
           </div>
@@ -64,6 +75,12 @@ const Groups = () => {
           <ChatWelcome />
         </div>
       </div>
+
+      <CreateGroupModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        workspaceId={workspaceId}
+      />
     </div>
   );
 };

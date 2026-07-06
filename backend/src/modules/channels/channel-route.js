@@ -17,11 +17,10 @@ import { authorizeRoles } from "../../middlewares/roleMiddleware.js";
 
 const router = express.Router();
 
-// 🔥 Create channel (admin / subadmin)
+// 🔥 Create channel
 router.post(
   "/",
   protect,
-  authorizeRoles("admin", "subadmin"),
   createChannel
 );
 
@@ -36,19 +35,17 @@ router.get(
 // 📄 Get single channel
 router.get("/:channelId", protect, getChannelById);
 
-// ✏ Update channel (admin / subadmin)
+// ✏ Update channel
 router.put(
   "/:channelId",
   protect,
-  authorizeRoles("admin", "subadmin"),
   updateChannel
 );
 
-// 🗑 Soft delete channel (admin only)
+// 🗑 Soft delete channel
 router.delete(
   "/:channelId",
   protect,
-  authorizeRoles("admin"),
   deleteChannel
 );
 
@@ -56,7 +53,6 @@ router.delete(
 router.patch(
   "/:channelId/archive",
   protect,
-  authorizeRoles("admin", "subadmin"),
   archiveChannel
 );
 
@@ -64,7 +60,6 @@ router.patch(
 router.post(
   "/:channelId/members",
   protect,
-  authorizeRoles("admin", "subadmin"),
   addChannelMember
 );
 
@@ -72,7 +67,6 @@ router.post(
 router.delete(
   "/:channelId/members/:userId",
   protect,
-  authorizeRoles("admin", "subadmin"),
   removeChannelMember
 );
 

@@ -119,8 +119,8 @@ const ChatList = ({ routeType = "dm" }) => {
     }
   };
 
-  if (isLoading) {
-    return <div className="p-4 text-sm">Loading conversations...</div>;
+  if (isLoading && chats.length === 0) {
+    return <div className="p-4 text-xs text-neutral-400">Loading conversations...</div>;
   }
 
   if (error) {
@@ -147,10 +147,12 @@ const ChatList = ({ routeType = "dm" }) => {
             key={chat.id}
             chat={{
               id: chat.id,
-              name: chat.fullName || chat.name,
-              message: chat.email || chat.description || "",
-              unread: 0,
-              time: "",
+              name: chat.fullName || chat.name || chat.title,
+              message: chat.lastMessage ? chat.lastMessage.content : (chat.description || chat.email || ""),
+              unread: chat.unreadCount || 0,
+              time: chat.lastMessage 
+                ? new Date(chat.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                : "",
               avatar: chat.avatar,
               isOnline: chat.isOnline,
             }}

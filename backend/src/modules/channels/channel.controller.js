@@ -7,20 +7,36 @@ export const createChannel = async (req, res, next) => {
   try {
     const { name, workspaceId, type = "public", description = "" } = req.body;
 
+    console.log("💥 CREATE CHANNEL REQUEST PARAMS:", {
+      name,
+      workspaceId,
+      type,
+      userId: req?.user?.id
+    });
+
     if (!name || !workspaceId) {
       return res.status(400).json({ message: "Name and workspaceId required" });
     }
 
-    // Verify user is member of workspace
+    // Verify user is member or owner of workspace
     const workspace = await prisma.workspace.findFirst({
       where: {
         id: workspaceId,
-        members: { some: { id: req.user.id } },
+        OR: [
+          { ownerId: req.user.id },
+          { members: { some: { id: req.user.id } } },
+        ],
       },
     });
 
     if (!workspace) {
       return res.status(403).json({ message: "Access denied" });
+    }
+
+    if (type === "private" && workspace.ownerId !== req.user.id) {
+      return res.status(403).json({ 
+        message: "Access denied. Only workspace admins can create private channels." 
+      });
     }
 
     const conversationType = type === "private" ? "private_channel" : "workspace_channel";
@@ -66,6 +82,7 @@ export const createChannel = async (req, res, next) => {
 ====================================================== */
 export const getWorkspaceChannels = async (req, res, next) => {
   try {
+    const userId = req.user.id;
     const workspaceId = req.query.workspace || req.query.workspaceId || req.params.workspaceId;
 
     if (!workspaceId) {
@@ -80,12 +97,25 @@ export const getWorkspaceChannels = async (req, res, next) => {
         },
         members: {
           some: {
-            userId: req.user.id,
+            userId,
           },
         },
         isDeleted: false,
       },
       include: {
+        lastMessage: {
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            senderId: true,
+          },
+        },
+        reads: {
+          where: {
+            userId,
+          },
+        },
         members: {
           include: {
             user: {
@@ -101,7 +131,44 @@ export const getWorkspaceChannels = async (req, res, next) => {
       },
     });
 
-    res.status(200).json(channels);
+    const channelsWithUnread = await Promise.all(
+      channels.map(async (channel) => {
+        const readStatus = channel.reads[0];
+        let unreadCount = 0;
+
+        if (readStatus) {
+          unreadCount = await prisma.message.count({
+            where: {
+              conversationId: channel.id,
+              createdAt: {
+                gt: readStatus.updatedAt,
+              },
+              senderId: {
+                not: userId,
+              },
+              isDeleted: false,
+            },
+          });
+        } else {
+          unreadCount = await prisma.message.count({
+            where: {
+              conversationId: channel.id,
+              senderId: {
+                not: userId,
+              },
+              isDeleted: false,
+            },
+          });
+        }
+
+        return {
+          ...channel,
+          unreadCount,
+        };
+      })
+    );
+
+    res.status(200).json(channelsWithUnread);
   } catch (error) {
     next(error);
   }
@@ -234,6 +301,45 @@ export const addChannelMember = async (req, res, next) => {
     const { channelId } = req.params;
     const { userId, role = "member" } = req.body;
 
+    const channel = await prisma.conversation.findUnique({
+      where: { id: channelId },
+    });
+
+    if (!channel) {
+      return res.status(404).json({ message: "Channel not found" });
+    }
+
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: channel.workspaceId },
+    });
+
+    const isWorkspaceOwner = workspace?.ownerId === req.user.id;
+
+    // Check if channel is private: only workspace owner (admin) can manage invites
+    if (channel.type === "private_channel" && !isWorkspaceOwner) {
+      return res.status(403).json({ 
+        message: "Access denied. Only workspace admins can manage members in private channels." 
+      });
+    }
+
+    // For public channels: workspace owner or channel admin can invite
+    if (channel.type === "workspace_channel") {
+      const requesterMember = await prisma.conversationMember.findUnique({
+        where: {
+          conversationId_userId: {
+            conversationId: channelId,
+            userId: req.user.id,
+          },
+        },
+      });
+      const isChannelAdmin = requesterMember?.role === "admin";
+      if (!isWorkspaceOwner && !isChannelAdmin) {
+        return res.status(403).json({ 
+          message: "Access denied. Only workspace admins or channel admins can manage members." 
+        });
+      }
+    }
+
     const existing = await prisma.conversationMember.findUnique({
       where: {
         conversationId_userId: {
@@ -267,6 +373,45 @@ export const addChannelMember = async (req, res, next) => {
 export const removeChannelMember = async (req, res, next) => {
   try {
     const { channelId, userId } = req.params;
+
+    const channel = await prisma.conversation.findUnique({
+      where: { id: channelId },
+    });
+
+    if (!channel) {
+      return res.status(404).json({ message: "Channel not found" });
+    }
+
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: channel.workspaceId },
+    });
+
+    const isWorkspaceOwner = workspace?.ownerId === req.user.id;
+
+    // Check if channel is private: only workspace owner (admin) can manage removes
+    if (channel.type === "private_channel" && !isWorkspaceOwner) {
+      return res.status(403).json({ 
+        message: "Access denied. Only workspace admins can manage members in private channels." 
+      });
+    }
+
+    // For public channels: workspace owner or channel admin can remove
+    if (channel.type === "workspace_channel") {
+      const requesterMember = await prisma.conversationMember.findUnique({
+        where: {
+          conversationId_userId: {
+            conversationId: channelId,
+            userId: req.user.id,
+          },
+        },
+      });
+      const isChannelAdmin = requesterMember?.role === "admin";
+      if (!isWorkspaceOwner && !isChannelAdmin) {
+        return res.status(403).json({ 
+          message: "Access denied. Only workspace admins or channel admins can manage members." 
+        });
+      }
+    }
 
     await prisma.conversationMember.delete({
       where: {

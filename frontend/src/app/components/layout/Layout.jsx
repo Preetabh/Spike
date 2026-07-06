@@ -5,10 +5,11 @@ import {
   useRouter,
 } from "next/navigation";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 import { applyTheme } from "../../../lib/theme";
+import { initSocket } from "../../../sockets/socket";
 
 import TopNavbar from "../navbar/TopNavbar";
 import MobileNavbar from "../mobile/MobileNavbar";
@@ -18,6 +19,7 @@ export default function Layout({
   children,
   onOpenSettings,
 }) {
+  const queryClient = useQueryClient();
   const { id } = useParams();
 
   const router = useRouter();
@@ -81,6 +83,52 @@ export default function Layout({
       );
     }
   }, [user]);
+
+  // Request Push Notification token on login/load
+  useEffect(() => {
+    if (user) {
+      import("../../../lib/firebase").then(({ initPushNotifications }) => {
+        initPushNotifications().catch((err) => {
+          console.warn("FCM push registration skipped:", err);
+        });
+      });
+    }
+  }, [user]);
+
+  // Listen for global message alerts and unread updates
+  useEffect(() => {
+    if (!id) return;
+    const socket = initSocket();
+    if (!socket) return;
+
+    const handleReceiveMessageGlobal = (message) => {
+      console.log("📨 Global Socket Message received:", message);
+      
+      // Invalidate the lists to refresh unread counts and last message previews instantly!
+      queryClient.invalidateQueries(["dm", id]);
+      queryClient.invalidateQueries(["channels", id]);
+      queryClient.invalidateQueries(["groups", id]);
+      
+      // Also invalidate conversation details in case it's currently open
+      queryClient.invalidateQueries(["conversation"]);
+
+      // Push notification fallback when browser window is in background
+      if (document.hidden) {
+        if (Notification.permission === "granted") {
+          new Notification(`Spike: Message from ${message.sender?.fullName || "Team"}`, {
+            body: message.content,
+            icon: message.sender?.avatar || "/favicon.ico",
+          });
+        }
+      }
+    };
+
+    socket.on("receive-message", handleReceiveMessageGlobal);
+
+    return () => {
+      socket.off("receive-message", handleReceiveMessageGlobal);
+    };
+  }, [id, queryClient]);
 
   // Owner check
   const isOwner =

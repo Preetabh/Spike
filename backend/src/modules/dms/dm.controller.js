@@ -129,6 +129,7 @@ export const getUserDMs = async (req, res, next) => {
             email: true,
             avatar: true,
             isOnline: true,
+            lastSeen: true,
           },
         },
       },
@@ -144,9 +145,96 @@ export const getUserDMs = async (req, res, next) => {
       (member) => member.id !== userId
     );
 
-    console.log("Members found:", filteredMembers.length);
+    // Fetch all DM conversations in this workspace for current user
+    const dmConversations = await prisma.conversation.findMany({
+      where: {
+        workspaceId,
+        type: "dm",
+        members: {
+          some: {
+            userId,
+          },
+        },
+        isDeleted: false,
+      },
+      include: {
+        members: {
+          select: {
+            userId: true,
+          },
+        },
+        lastMessage: {
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            senderId: true,
+          },
+        },
+        reads: {
+          where: {
+            userId,
+          },
+        },
+      },
+    });
 
-    res.status(200).json(filteredMembers);
+    // Map members to include conversation info
+    const membersWithChatInfo = await Promise.all(
+      filteredMembers.map(async (member) => {
+        // Find conversation with this member
+        const conv = dmConversations.find((c) =>
+          c.members.some((m) => m.userId === member.id)
+        );
+
+        if (!conv) {
+          return {
+            ...member,
+            conversationId: null,
+            lastMessage: null,
+            unreadCount: 0,
+          };
+        }
+
+        // Calculate unread count
+        const readStatus = conv.reads[0];
+        let unreadCount = 0;
+
+        if (readStatus) {
+          unreadCount = await prisma.message.count({
+            where: {
+              conversationId: conv.id,
+              createdAt: {
+                gt: readStatus.updatedAt,
+              },
+              senderId: {
+                not: userId,
+              },
+              isDeleted: false,
+            },
+          });
+        } else {
+          unreadCount = await prisma.message.count({
+            where: {
+              conversationId: conv.id,
+              senderId: {
+                not: userId,
+              },
+              isDeleted: false,
+            },
+          });
+        }
+
+        return {
+          ...member,
+          conversationId: conv.id,
+          lastMessage: conv.lastMessage,
+          unreadCount,
+        };
+      })
+    );
+
+    res.status(200).json(membersWithChatInfo);
   } catch (error) {
     next(error);
   }

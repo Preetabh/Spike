@@ -317,6 +317,35 @@ export const updateProfile = async (req, res, next) => {
 };
 
 /* ===============================
+   UPDATE FCM TOKEN
+================================ */
+export const updateFcmToken = async (req, res, next) => {
+  try {
+    const { fcmToken } = req.body;
+
+    const updatedUser = await prisma.user.update({
+      where: {
+        id: req.user.id,
+      },
+      data: {
+        fcmToken: fcmToken || null,
+      },
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: "FCM token updated successfully",
+      data: {
+        id: updatedUser.id,
+        fcmToken: updatedUser.fcmToken,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* ===============================
    CHANGE PASSWORD
 ================================ */
 export const changePassword = async (req, res, next) => {

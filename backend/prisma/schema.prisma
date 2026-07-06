@@ -75,6 +75,7 @@ model User {
   lastSeen DateTime?
 
   socketId String?
+  fcmToken String?
 
   otp       String?
   otpExpiry DateTime?

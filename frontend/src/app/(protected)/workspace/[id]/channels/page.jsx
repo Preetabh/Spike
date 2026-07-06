@@ -1,9 +1,17 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
+import { useParams } from "next/navigation";
 import ChatList from "../../../../components/chatList/ChatList";
 import ChatWelcome from "../../../../components/chat/ChatWelcome";
 import SearchBar from "../../../../components/common/SearchBar";
+import CreateChannelModal from "../../../../components/models/CreateChannelModal";
 
 const Channel = () => {
+  const params = useParams();
+  const workspaceId = params?.id;
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
   return (
     <div className="flex h-full overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)] transition-all duration-300">
       {/* LEFT SIDEBAR */}
@@ -27,7 +35,10 @@ const Channel = () => {
             </div>
 
             {/* CREATE CHANNEL */}
-            <button className="w-12 h-12 rounded-2xl bg-[color:var(--primary)] hover:bg-[color:var(--accent)] transition-all duration-300 flex items-center justify-center text-2xl font-medium text-[color:var(--primary-foreground)] shadow-lg active:scale-95 border border-[color:var(--border)] backdrop-blur-xl">
+            <button 
+              onClick={() => setIsCreateOpen(true)}
+              className="w-12 h-12 rounded-2xl bg-[color:var(--primary)] hover:bg-[color:var(--accent)] transition-all duration-300 flex items-center justify-center text-2xl font-medium text-[color:var(--primary-foreground)] shadow-lg active:scale-95 border border-[color:var(--border)] backdrop-blur-xl"
+            >
               +
             </button>
           </div>
@@ -62,6 +73,12 @@ const Channel = () => {
           <ChatWelcome />
         </div>
       </div>
+
+      <CreateChannelModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        workspaceId={workspaceId}
+      />
     </div>
   );
 };

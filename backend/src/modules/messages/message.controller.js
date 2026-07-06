@@ -162,6 +162,28 @@ export const getConversationMessages = async (req, res, next) => {
       },
     });
 
+    // Update conversation read tracking for this user
+    if (messages.length > 0) {
+      const lastReadMessageId = messages[messages.length - 1].id;
+      await prisma.conversationRead.upsert({
+        where: {
+          userId_conversationId: {
+            userId,
+            conversationId,
+          },
+        },
+        create: {
+          userId,
+          conversationId,
+          lastReadMessageId,
+        },
+        update: {
+          lastReadMessageId,
+          updatedAt: new Date(),
+        },
+      });
+    }
+
     return res.status(200).json(messages);
   } catch (error) {
     next(error);

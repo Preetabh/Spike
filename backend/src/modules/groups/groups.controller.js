@@ -3,6 +3,7 @@ import prisma from "../../db/db.js";
 // GET ALL GROUPS OF WORKSPACE
 export const getWorkspaceGroups = async (req, res, next) => {
   try {
+    const userId = req.user.id;
     const workspaceId = req.query.workspace || req.query.workspaceId;
 
     if (!workspaceId) {
@@ -15,12 +16,25 @@ export const getWorkspaceGroups = async (req, res, next) => {
         type: "group",
         members: {
           some: {
-            userId: req.user.id,
+            userId,
           },
         },
         isDeleted: false,
       },
       include: {
+        lastMessage: {
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            senderId: true,
+          },
+        },
+        reads: {
+          where: {
+            userId,
+          },
+        },
         members: {
           include: {
             user: {
@@ -36,7 +50,44 @@ export const getWorkspaceGroups = async (req, res, next) => {
       },
     });
 
-    res.status(200).json(groups);
+    const groupsWithUnread = await Promise.all(
+      groups.map(async (group) => {
+        const readStatus = group.reads[0];
+        let unreadCount = 0;
+
+        if (readStatus) {
+          unreadCount = await prisma.message.count({
+            where: {
+              conversationId: group.id,
+              createdAt: {
+                gt: readStatus.updatedAt,
+              },
+              senderId: {
+                not: userId,
+              },
+              isDeleted: false,
+            },
+          });
+        } else {
+          unreadCount = await prisma.message.count({
+            where: {
+              conversationId: group.id,
+              senderId: {
+                not: userId,
+              },
+              isDeleted: false,
+            },
+          });
+        }
+
+        return {
+          ...group,
+          unreadCount,
+        };
+      })
+    );
+
+    res.status(200).json(groupsWithUnread);
   } catch (error) {
     next(error);
   }
