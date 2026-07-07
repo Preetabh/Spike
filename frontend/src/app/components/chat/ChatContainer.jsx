@@ -11,6 +11,7 @@ import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import MessageList from "./MessageList";
 import TypingIndicator from "./TypingIndicator";
+import CallModal from "./CallModal";
 import { getSocket } from "../../../sockets/socket";
 
 const ChatContainer = () => {
@@ -156,6 +157,8 @@ const ChatContainer = () => {
     };
   }, [workspaceId, chatType, memberId, channelId, groupId, queryClient]);
 
+
+
   const isInitialLoad = isLoading && !data;
   const isInitialMessagesLoad = messagesLoading && messages.length === 0;
 
@@ -179,9 +182,9 @@ const ChatContainer = () => {
   }
 
   return (
-    <div className="relative flex h-full min-h-0 w-full overflow-hidden bg-[color:var(--background)]">
+    <div className="relative flex h-full min-h-0 w-full overflow-hidden bg-transparent">
       {/* Main Chat Area */}
-      <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden text-[color:var(--foreground)] border-r border-white/5 flex-1 transition-all duration-300">
+      <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden text-[color:var(--foreground)] flex-1 transition-all duration-300">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-[color:var(--primary)]/10 blur-3xl" />
           <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[color:var(--accent)]/10 blur-3xl" />
@@ -199,6 +202,20 @@ const ChatContainer = () => {
               type: chatType,
             }}
             onToggleDrawer={() => setShowDrawer((prev) => !prev)}
+            onStartCall={(callType) => {
+              window.dispatchEvent(
+                new CustomEvent("start-call-trigger", {
+                  detail: {
+                    callType,
+                    chatType,
+                    conversationId,
+                    selectedChatName,
+                    memberId,
+                    members: data?.members,
+                  },
+                })
+              );
+            }}
           />
         </div>
 
@@ -358,6 +375,7 @@ const ChatContainer = () => {
           </div>
         )}
       </div>
+
     </div>
   );
 };

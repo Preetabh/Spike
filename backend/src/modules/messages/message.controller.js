@@ -1,16 +1,18 @@
 import { prisma } from "../../lib/prisma.js";
+import { redis } from "../../lib/redis.js";
+import cloudinary from "../../utils/cloudinary.js";
 
 /* =====================================
    SEND MESSAGE
 ===================================== */
 export const sendMessage = async (req, res, next) => {
   try {
-    const { conversationId, content } = req.body;
+    const { conversationId, content, mediaUrl, mediaType, messageType } = req.body;
     const senderId = req.user.id;
 
-    if (!conversationId || !content?.trim()) {
+    if (!conversationId || (!content?.trim() && !mediaUrl)) {
       return res.status(400).json({
-        message: "Conversation ID and content are required",
+        message: "Conversation ID and either content or mediaUrl are required",
       });
     }
 
@@ -31,7 +33,10 @@ export const sendMessage = async (req, res, next) => {
       data: {
         conversationId,
         senderId,
-        content: content.trim(),
+        content: content?.trim() || "",
+        mediaUrl: mediaUrl || null,
+        mediaType: mediaType || null,
+        messageType: messageType || "text",
       },
       include: {
         sender: {
@@ -52,6 +57,15 @@ export const sendMessage = async (req, res, next) => {
         lastMessageId: message.id,
       },
     });
+
+    // Invalidate Redis cache
+    if (redis) {
+      try {
+        await redis.del(`conversation:messages:${conversationId}`);
+      } catch (err) {
+        console.warn("Redis delete error:", err.message);
+      }
+    }
 
     const io = req.app.get("io");
 
@@ -144,46 +158,71 @@ export const getConversationMessages = async (req, res, next) => {
       });
     }
 
-    const messages = await prisma.message.findMany({
-      where: {
-        conversationId,
-        isDeleted: false,
-        deletedFor: {
-          none: {
-            id: userId,
-          },
-        },
-      },
-      include: {
-        sender: {
-          select: {
-            id: true,
-            fullName: true,
-            avatar: true,
-          },
-        },
-        reactions: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                fullName: true,
-                avatar: true,
-              },
+    const cacheKey = `conversation:messages:${conversationId}`;
+    let messages = [];
+    let cachedData = null;
+
+    if (redis && !limit) {
+      try {
+        cachedData = await redis.get(cacheKey);
+        if (cachedData) {
+          messages = JSON.parse(cachedData);
+        }
+      } catch (err) {
+        console.warn("Redis read error:", err.message);
+      }
+    }
+
+    if (!cachedData) {
+      messages = await prisma.message.findMany({
+        where: {
+          conversationId,
+          isDeleted: false,
+          deletedFor: {
+            none: {
+              id: userId,
             },
           },
         },
-        seenBy: {
-          select: {
-            id: true,
+        include: {
+          sender: {
+            select: {
+              id: true,
+              fullName: true,
+              avatar: true,
+            },
+          },
+          reactions: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  avatar: true,
+                },
+              },
+            },
+          },
+          seenBy: {
+            select: {
+              id: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: limit ? "desc" : "asc",
-      },
-      take: limit,
-    });
+        orderBy: {
+          createdAt: limit ? "desc" : "asc",
+        },
+        take: limit,
+      });
+
+      if (redis && !limit) {
+        try {
+          await redis.set(cacheKey, JSON.stringify(messages), "EX", 300); // cache for 5 minutes
+        } catch (err) {
+          console.warn("Redis write error:", err.message);
+        }
+      }
+    }
 
     if (limit) {
       messages.reverse();
@@ -437,6 +476,52 @@ export const removeReaction = async (req, res, next) => {
     }
 
     res.json({ message: "Reaction removed" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =====================================
+   UPLOAD ATTACHMENT
+===================================== */
+export const uploadAttachment = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // Determine type: image, video, audio, or raw file
+    let mediaType = "file";
+    if (req.file.mimetype.startsWith("image/")) {
+      mediaType = "image";
+    } else if (req.file.mimetype.startsWith("video/")) {
+      mediaType = "video";
+    } else if (req.file.mimetype.startsWith("audio/")) {
+      mediaType = "audio";
+    }
+
+    // Cloudinary uploader expects a base64 or stream. We upload a base64 string
+    const base64File = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+    
+    // Set cloudinary resource type dynamically based on mediaType (video, raw, image)
+    let resourceType = "raw";
+    if (mediaType === "image") {
+      resourceType = "image";
+    } else if (mediaType === "video" || mediaType === "audio") {
+      resourceType = "video";
+    }
+
+    const uploadResult = await cloudinary.uploader.upload(base64File, {
+      resource_type: resourceType,
+      folder: "spike-attachments",
+    });
+
+    return res.status(200).json({
+      url: uploadResult.secure_url,
+      mediaType,
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+    });
   } catch (error) {
     next(error);
   }

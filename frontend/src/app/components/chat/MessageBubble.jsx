@@ -1,12 +1,31 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Smile, Trash2, Edit3, Check, X, Trash, CheckCheck } from "lucide-react";
+import { Smile, Trash2, Edit3, Check, X, Trash, CheckCheck, Phone, Video } from "lucide-react";
 
 const MessageBubble = ({ message, currentUserId }) => {
   const isOwn = message.senderId === currentUserId || message.isOwn;
   const senderName = message?.sender?.fullName || message?.sender?.name || "User";
   const messageText = message?.content || message?.text || "";
+
+  // Render Call History System Messages
+  if (message.messageType === "system" || message.type === "system") {
+    const isVideo = messageText.toLowerCase().includes("video");
+    const isMissedOrDeclined = messageText.toLowerCase().includes("missed") || messageText.toLowerCase().includes("declined");
+
+    return (
+      <div className="flex justify-center w-full mb-5 px-3 sm:px-6 select-none animate-message-appear">
+        <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-zinc-950/60 border border-white/5 text-[11px] font-bold shadow-inner tracking-wide text-neutral-400">
+          {isVideo ? (
+            <Video size={13} className={isMissedOrDeclined ? "text-red-400" : "text-green-400"} />
+          ) : (
+            <Phone size={13} className={isMissedOrDeclined ? "text-red-400" : "text-green-400"} />
+          )}
+          <span>{messageText}</span>
+        </div>
+      </div>
+    );
+  }
 
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(messageText);
@@ -252,6 +271,75 @@ const MessageBubble = ({ message, currentUserId }) => {
               </div>
             ) : (
               <div className={`text-[13px] sm:text-[14px] leading-relaxed break-words whitespace-pre-wrap overflow-hidden ${isOwn ? "text-white/95" : "text-foreground/95"}`}>
+                {/* Render Media Attachments */}
+                {message.mediaUrl && (message.messageType === "image" || message.mediaType === "image" || message.mediaUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)/i)) && (
+                  <div className="mt-1 mb-3 flex flex-col gap-1.5 max-w-xs sm:max-w-sm">
+                    <div className="rounded-2xl overflow-hidden border border-border shadow-sm hover:opacity-95 transition-opacity">
+                      <img src={message.mediaUrl} alt="Attachment" className="w-full h-auto max-h-60 object-cover" />
+                    </div>
+                    <a
+                      href={message.mediaUrl}
+                      download
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-1.5 py-1 px-3 rounded-xl bg-card/90 border border-border text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted font-semibold transition shadow-sm self-start"
+                    >
+                      📥 Download Image
+                    </a>
+                  </div>
+                )}
+
+                {message.mediaUrl && (message.messageType === "video" || message.mediaType === "video" || message.mediaUrl.match(/\.(mp4|webm|ogg|mov)/i)) && (
+                  <div className="mt-1 mb-3 flex flex-col gap-1.5 max-w-xs sm:max-w-sm">
+                    <div className="rounded-2xl overflow-hidden border border-border shadow-sm">
+                      <video src={message.mediaUrl} controls className="w-full h-auto max-h-60" />
+                    </div>
+                    <a
+                      href={message.mediaUrl}
+                      download
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-1.5 py-1 px-3 rounded-xl bg-card/90 border border-border text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted font-semibold transition shadow-sm self-start"
+                    >
+                      📥 Download Video
+                    </a>
+                  </div>
+                )}
+
+                {message.mediaUrl && (message.messageType === "audio" || message.mediaType === "audio" || message.mediaUrl.match(/\.(mp3|wav|ogg|webm|m4a)/i)) && (
+                  <div className="mt-1 mb-3 flex flex-col gap-1.5 max-w-xs sm:max-w-sm">
+                    <div className="rounded-2xl overflow-hidden p-2 bg-card/90 border border-border shadow-sm flex items-center justify-center min-w-[200px] sm:min-w-[260px]">
+                      <audio src={message.mediaUrl} controls className="w-full h-8 outline-none text-xs" />
+                    </div>
+                    <a
+                      href={message.mediaUrl}
+                      download
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-center gap-1.5 py-1 px-3 rounded-xl bg-card/90 border border-border text-[10px] text-muted-foreground hover:text-foreground hover:bg-muted font-semibold transition shadow-sm self-start"
+                    >
+                      📥 Download Audio
+                    </a>
+                  </div>
+                )}
+
+                {message.mediaUrl && 
+                  !(message.messageType === "image" || message.mediaType === "image" || message.mediaUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)/i)) &&
+                  !(message.messageType === "video" || message.mediaType === "video" || message.mediaUrl.match(/\.(mp4|webm|ogg|mov)/i)) &&
+                  !(message.messageType === "audio" || message.mediaType === "audio" || message.mediaUrl.match(/\.(mp3|wav|ogg|webm|m4a)/i)) && (
+                    <div className="mt-1 mb-3">
+                      <a
+                        href={message.mediaUrl}
+                        download
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 p-2.5 rounded-xl bg-card border border-border text-xs text-[color:var(--primary)] hover:opacity-85 font-semibold transition shadow-sm max-w-xs sm:max-w-sm"
+                      >
+                        📎 Download Attachment
+                      </a>
+                    </div>
+                )}
+
                 {/* Parse mentions and format dynamically */}
                 {(() => {
                   if (!messageText) return "";

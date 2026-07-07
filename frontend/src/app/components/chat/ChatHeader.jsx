@@ -2,7 +2,7 @@ import React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Phone, Video, MoreVertical } from "lucide-react";
 
-const ChatHeader = ({ chat, onToggleDrawer }) => {
+const ChatHeader = ({ chat, onToggleDrawer, onStartCall }) => {
   const router = useRouter();
   const params = useParams();
   const workspaceId = params?.id;
@@ -33,7 +33,7 @@ const ChatHeader = ({ chat, onToggleDrawer }) => {
   const avatarInitials = isChannel ? "#" : nameInitials.charAt(0);
 
   return (
-    <div className="relative h-[72px] border-b border-white/5 bg-[#09090b]/60 backdrop-blur-xl px-4 md:px-6 flex items-center justify-between transition-all duration-300 overflow-hidden">
+    <div className="relative h-[72px] border-b border-border bg-card/65 backdrop-blur-xl px-4 md:px-6 flex items-center justify-between transition-all duration-300 overflow-hidden shadow-sm">
       {/* Background Glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-10 w-44 h-44 rounded-full bg-[color:var(--primary)]/5 blur-3xl"></div>
@@ -50,20 +50,30 @@ const ChatHeader = ({ chat, onToggleDrawer }) => {
             e.stopPropagation();
             handleBack();
           }}
-          className="md:hidden p-2 mr-1 rounded-xl border border-white/10 bg-neutral-900/60 hover:bg-neutral-800 text-white active:scale-95 transition"
+          className="md:hidden p-2 mr-1 rounded-xl border border-border bg-muted hover:bg-muted/80 text-foreground active:scale-95 transition"
           aria-label="Go back"
         >
           <ArrowLeft size={16} />
         </button>
 
         {/* Avatar */}
-        <div className={`w-10 h-10 md:w-11 md:h-11 rounded-[16px] bg-gradient-to-br ${typeGradient[chat?.type || "dm"]} text-white flex items-center justify-center font-extrabold text-sm md:text-base shadow-lg border border-white/10 transition-transform duration-300 group-hover:scale-105 select-none`}>
-          {avatarInitials}
+        <div className="w-10 h-10 md:w-11 md:h-11 rounded-[16px] overflow-hidden flex items-center justify-center shadow-lg border border-white/10 transition-transform duration-300 group-hover:scale-105 select-none bg-zinc-950">
+          {chat?.avatar ? (
+            <img
+              src={chat.avatar}
+              alt="chat avatar"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className={`w-full h-full bg-gradient-to-br ${typeGradient[chat?.type || "dm"]} text-white flex items-center justify-center font-extrabold text-sm md:text-base`}>
+              {avatarInitials}
+            </div>
+          )}
         </div>
 
         {/* Chat Info */}
         <div className="min-w-0">
-          <h2 className="text-white font-bold text-sm md:text-base truncate tracking-tight group-hover:text-purple-300 transition">
+          <h2 className="text-foreground font-bold text-sm md:text-base truncate tracking-tight group-hover:text-[color:var(--primary)] transition">
             {chat?.name}
           </h2>
 
@@ -71,7 +81,7 @@ const ChatHeader = ({ chat, onToggleDrawer }) => {
             {chat?.type === "dm" && chat?.isOnline && (
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
             )}
-            <span className="text-[10px] md:text-xs text-neutral-400 font-medium tracking-wide">
+            <span className="text-[10px] md:text-xs text-muted-foreground font-medium tracking-wide">
               {(() => {
                 if (isChannel) return chat?.isPrivate ? "Private Channel" : "Public Channel";
                 if (isGroup) return "Group Conversation";
@@ -98,15 +108,17 @@ const ChatHeader = ({ chat, onToggleDrawer }) => {
       {/* Right Actions */}
       <div className="relative z-10 flex items-center gap-2 md:gap-3">
         <button
+          onClick={() => onStartCall?.("audio")}
           aria-label="call"
-          className="w-9 h-9 md:w-10 md:h-10 rounded-xl border border-white/5 bg-neutral-900/50 hover:bg-neutral-800 text-neutral-400 hover:text-white transition duration-200 flex items-center justify-center shadow-lg active:scale-95"
+          className="w-9 h-9 md:w-10 md:h-10 rounded-xl border border-border bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition duration-200 flex items-center justify-center shadow-lg active:scale-95 cursor-pointer"
         >
           <Phone size={15} />
         </button>
 
         <button
+          onClick={() => onStartCall?.("video")}
           aria-label="video"
-          className="w-9 h-9 md:w-10 md:h-10 rounded-xl border border-white/5 bg-neutral-900/50 hover:bg-neutral-800 text-neutral-400 hover:text-white transition duration-200 flex items-center justify-center shadow-lg active:scale-95"
+          className="w-9 h-9 md:w-10 md:h-10 rounded-xl border border-border bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition duration-200 flex items-center justify-center shadow-lg active:scale-95 cursor-pointer"
         >
           <Video size={15} />
         </button>
@@ -114,7 +126,7 @@ const ChatHeader = ({ chat, onToggleDrawer }) => {
         <button
           onClick={onToggleDrawer}
           aria-label="options"
-          className="w-9 h-9 md:w-10 md:h-10 rounded-xl border border-white/5 bg-neutral-900/50 hover:bg-neutral-800 text-neutral-400 hover:text-white transition duration-200 flex items-center justify-center shadow-lg active:scale-95"
+          className="w-9 h-9 md:w-10 md:h-10 rounded-xl border border-border bg-muted/60 hover:bg-muted text-muted-foreground hover:text-foreground transition duration-200 flex items-center justify-center shadow-lg active:scale-95"
         >
           <MoreVertical size={15} />
         </button>

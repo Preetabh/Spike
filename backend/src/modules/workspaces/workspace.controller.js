@@ -181,8 +181,8 @@ export const getWorkspaceById = async (req, res) => {
 //  UPDATE WORKSPACE
 export const updateWorkspace = async (req, res) => {
   try {
-    // Update workspace name/description if provided
-    const { name, description } = req.body;
+    // Update workspace name/description/logo if provided
+    const { name, description, logo } = req.body;
 
     const workspace = await prisma.workspace.findUnique({
       where: {
@@ -201,6 +201,7 @@ export const updateWorkspace = async (req, res) => {
       data: {
         name: name || workspace.name,
         description: description || workspace.description,
+        logo: logo !== undefined ? logo : workspace.logo,
       },
     });
 

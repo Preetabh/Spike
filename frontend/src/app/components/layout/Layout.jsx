@@ -6,10 +6,11 @@ import {
 } from "next/navigation";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { applyTheme } from "../../../lib/theme";
 import { initSocket } from "../../../sockets/socket";
+import CallModal from "../chat/CallModal";
 
 import TopNavbar from "../navbar/TopNavbar";
 import MobileNavbar from "../mobile/MobileNavbar";
@@ -25,6 +26,7 @@ export default function Layout({
   const isChatOpen = Boolean(params?.memberId || params?.channelId || params?.groupId);
 
   const router = useRouter();
+  const [activeCall, setActiveCall] = useState(null);
 
   // Protected fetch helper
   const fetchData = async (url) => {
@@ -94,6 +96,13 @@ export default function Layout({
           console.warn("FCM push registration skipped:", err);
         });
       });
+
+      // Join personal socket room for calls and alerts routing
+      const socket = initSocket();
+      if (socket) {
+        console.log("🚀 Socket: Emitting joinUserRoom for user:", user.id);
+        socket.emit("joinUserRoom", user.id);
+      }
     }
   }, [user]);
 
@@ -102,6 +111,15 @@ export default function Layout({
     if (!id) return;
     const socket = initSocket();
     if (!socket) return;
+
+    const handleConnect = () => {
+      if (user?.id) {
+        console.log("🚀 Socket: Connected/reconnected. Joining user room:", user.id);
+        socket.emit("joinUserRoom", user.id);
+      }
+    };
+
+    socket.on("connect", handleConnect);
 
     const handleReceiveMessageGlobal = (message) => {
       console.log("📨 Global Socket Message received:", message);
@@ -138,9 +156,86 @@ export default function Layout({
     socket.on("receive-message", handleReceiveMessageGlobal);
 
     return () => {
+      socket.off("connect", handleConnect);
       socket.off("receive-message", handleReceiveMessageGlobal);
     };
   }, [id, queryClient]);
+
+  // Listen for WebRTC incoming calls globally
+  useEffect(() => {
+    if (!id) return;
+    const socket = initSocket();
+    if (!socket) return;
+
+    const handleIncomingCall = (data) => {
+      console.log("📞 WebRTC [Global Layout]: IncomingCall event received via socket:", data);
+      setActiveCall((prev) => {
+        if (prev) return prev;
+        return {
+          id: data.callId,
+          type: data.callType,
+          role: "receiver",
+          chat: {
+            id: data.chatId,
+            name: data.callerName || "Incoming Call",
+          }
+        };
+      });
+    };
+
+    socket.on("incomingCall", handleIncomingCall);
+    return () => {
+      socket.off("incomingCall", handleIncomingCall);
+    };
+  }, [id]);
+
+  // Listen for WebRTC start-call custom triggers from ChatContainer
+  useEffect(() => {
+    const handleStartCall = (event) => {
+      const { callType, chatType, conversationId, selectedChatName, memberId, members } = event.detail;
+      const callId = `call_${Date.now()}`;
+      const socket = initSocket();
+      
+      let participants = [];
+      if (chatType === "dm" && memberId) {
+        participants = [memberId];
+      } else if (members) {
+        participants = members
+          .map((m) => m.userId)
+          .filter((uid) => uid && uid !== user?.id);
+      }
+
+      console.log("📞 WebRTC [Global Layout]: Emitting callUser event via socket:", {
+        callId,
+        participants,
+        callType,
+      });
+
+      socket?.emit("callUser", {
+        callId,
+        participants,
+        callType,
+        callScope: chatType,
+        chatId: conversationId || "no-id",
+        callerName: user?.fullName || "Spike User",
+      });
+
+      setActiveCall({
+        id: callId,
+        type: callType,
+        role: "caller",
+        chat: {
+          id: conversationId || "no-id",
+          name: selectedChatName,
+        }
+      });
+    };
+
+    window.addEventListener("start-call-trigger", handleStartCall);
+    return () => {
+      window.removeEventListener("start-call-trigger", handleStartCall);
+    };
+  }, [user]);
 
   // Owner check
   const isOwner =
@@ -178,6 +273,14 @@ export default function Layout({
 
       {/* 🔥 MOBILE NAV */}
       {!isChatOpen && <MobileNavbar id={id} />}
+
+      {activeCall && (
+        <CallModal
+          call={activeCall}
+          currentUserId={user?.id}
+          onClose={() => setActiveCall(null)}
+        />
+      )}
     </div>
   );
 }

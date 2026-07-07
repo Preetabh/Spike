@@ -14,7 +14,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning={true}>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -35,7 +35,7 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className={`${inter.className} antialiased text-[14px]`}>
+      <body className={`${inter.className} antialiased text-[14px]`} suppressHydrationWarning={true}>
         <Providers>
           {children}
         </Providers>

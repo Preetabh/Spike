@@ -60,9 +60,19 @@ export default function TopNavbar({ user, workspace, className = "", onOpenSetti
         <div className="relative flex items-center" ref={dropdownRef}>
           <button
             onClick={() => setOpenProfile(!openProfile)}
-            className="w-7 h-7 bg-gradient-to-br from-[color:var(--primary)] to-[color:var(--accent)] text-white rounded-full flex items-center justify-center font-bold border border-white/10 shadow-sm hover:scale-105 active:scale-95 transition text-[11px] cursor-pointer"
+            className="w-7 h-7 rounded-full flex items-center justify-center border border-white/10 shadow-sm hover:scale-105 active:scale-95 transition cursor-pointer overflow-hidden bg-zinc-950"
           >
-            {userInitials}
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt="user avatar"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[color:var(--primary)] to-[color:var(--accent)] text-white flex items-center justify-center font-bold text-[11px]">
+                {userInitials}
+              </div>
+            )}
           </button>
 
           {openProfile && (

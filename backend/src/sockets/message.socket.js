@@ -1,14 +1,15 @@
 import { prisma } from "../lib/prisma.js";
+import { redis } from "../lib/redis.js";
 import { sendPushNotification } from "../lib/push.js";
 
 const messageSocket = (io, socket) => {
   socket.on(
     "send-message",
-    async ({ conversationId, content }) => {
+    async ({ conversationId, content, mediaUrl, mediaType, messageType }) => {
       try {
         const senderId = socket.data.user.id;
 
-        if (!content?.trim()) {
+        if (!content?.trim() && !mediaUrl) {
           return;
         }
 
@@ -30,7 +31,10 @@ const messageSocket = (io, socket) => {
           data: {
             conversationId,
             senderId,
-            content: content.trim(),
+            content: content?.trim() || "",
+            mediaUrl: mediaUrl || null,
+            mediaType: mediaType || null,
+            messageType: messageType || "text",
           },
           include: {
             sender: {
@@ -42,6 +46,15 @@ const messageSocket = (io, socket) => {
             },
           },
         });
+
+        // Invalidate Redis cache
+        if (redis) {
+          try {
+            await redis.del(`conversation:messages:${conversationId}`);
+          } catch (err) {
+            console.warn("Redis delete error:", err.message);
+          }
+        }
 
         await prisma.conversation.update({
           where: {

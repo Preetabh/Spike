@@ -30,6 +30,7 @@ const ChatListItem = ({
       {/* Avatar */}
       <Avatar
         name={chat?.name}
+        src={chat?.avatar}
         type={chat?.type}
         status={chat?.isOnline || chat?.type === "dm" && chat?.isOnline}
         size="md"

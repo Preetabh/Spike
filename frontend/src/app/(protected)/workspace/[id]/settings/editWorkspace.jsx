@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
 
 const EditWorkspace = ({ workspace }) => {
@@ -9,13 +9,46 @@ const EditWorkspace = ({ workspace }) => {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [logo, setLogo] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const logoInputRef = useRef(null);
 
   useEffect(() => {
     if (workspace) {
       setName(workspace.name || "");
       setDescription(workspace.description || "");
+      setLogo(workspace.logo || "");
     }
   }, [workspace]);
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/messages/upload`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+
+      const data = await res.json();
+      setLogo(data.url);
+      toast.success("Logo uploaded successfully. Save changes to apply.");
+    } catch (err) {
+      console.error("Logo upload error:", err);
+      toast.error("Failed to upload logo.");
+    } finally {
+      setIsUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
 
   const { mutate: updateWorkspace, isPending } = useMutation({
     mutationFn: async () => {
@@ -30,6 +63,7 @@ const EditWorkspace = ({ workspace }) => {
           body: JSON.stringify({
             name,
             description,
+            logo: logo || null,
           }),
         }
       );
@@ -64,11 +98,11 @@ const EditWorkspace = ({ workspace }) => {
         <div className="flex items-center gap-5">
           <img
             src={
-              workspace.logo ||
-              "https://ui-avatars.com/api/?name=" + workspace.name
+              logo ||
+              "https://ui-avatars.com/api/?name=" + name
             }
             alt="workspace"
-            className="w-24 h-24 rounded-3xl object-cover border-4 border-[color:var(--border)] shadow-lg"
+            className="w-24 h-24 rounded-3xl object-cover border-4 border-[color:var(--border)] shadow-lg bg-zinc-950"
           />
 
           <div>
@@ -163,21 +197,38 @@ const EditWorkspace = ({ workspace }) => {
             </p>
 
             <div className="flex items-center gap-4 mt-5">
+              <input
+                type="file"
+                ref={logoInputRef}
+                onChange={handleLogoUpload}
+                accept="image/*"
+                className="hidden"
+              />
+
               <img
                 src={
-                  workspace.logo ||
-                  "https://ui-avatars.com/api/?name=" + workspace.name
+                  logo ||
+                  "https://ui-avatars.com/api/?name=" + name
                 }
                 alt="workspace"
-                className="w-20 h-20 rounded-2xl object-cover border border-[color:var(--border)]"
+                className="w-20 h-20 rounded-2xl object-cover border border-[color:var(--border)] bg-zinc-950"
               />
 
               <div className="flex gap-3">
-                <button className="px-5 py-2 rounded-xl bg-[color:var(--sidebar-accent)] text-[color:var(--sidebar-accent-foreground)] font-medium hover:opacity-90 transition">
-                  Upload New
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="px-5 py-2 rounded-xl bg-[color:var(--sidebar-accent)] text-[color:var(--sidebar-accent-foreground)] font-medium hover:opacity-90 transition disabled:opacity-50"
+                >
+                  {isUploading ? "Uploading..." : "Upload New"}
                 </button>
 
-                <button className="px-5 py-2 rounded-xl border border-[color:var(--border)] text-[color:var(--foreground)] hover:bg-[color:var(--background)] transition">
+                <button
+                  type="button"
+                  onClick={() => setLogo("")}
+                  className="px-5 py-2 rounded-xl border border-[color:var(--border)] text-[color:var(--foreground)] hover:bg-[color:var(--background)] transition"
+                >
                   Remove
                 </button>
               </div>

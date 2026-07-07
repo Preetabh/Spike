@@ -1,6 +1,9 @@
+import prisma from "../db/db.js";
+import { sendPushNotification } from "../lib/push.js";
+
 /* =========================================================
    ENTERPRISE CALL SOCKET SYSTEM (Slack-Level)
-========================================================= */
+ ========================================================= */
 
 const activeCalls = new Map();
 
@@ -22,10 +25,38 @@ const callSocket = (io, socket) => {
       participants,
       status: "ringing",
       startedAt: Date.now(),
+      conversationId: data.chatId,
+      callType: callType,
+      callerId: socket.data?.user?.id,
     });
 
-    participants.forEach((userId) => {
+    participants.forEach(async (userId) => {
+      // 1. Emit live socket alert
       io.to(`user_${userId}`).emit("incomingCall", data);
+
+      // 2. Dispatch Firebase FCM Push Alert
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { fcmToken: true },
+        });
+
+        if (user?.fcmToken) {
+          const typeLabel = callType === "video" ? "Video Call" : "Voice Call";
+          const title = `Incoming ${typeLabel}`;
+          const body = `${data.callerName || "Someone"} is calling you...`;
+
+          await sendPushNotification(user.fcmToken, title, body, {
+            callId,
+            callType,
+            chatId: data.chatId,
+            callerName: data.callerName || "Someone",
+            click_action: "FLUTTER_NOTIFICATION_CLICK",
+          });
+        }
+      } catch (err) {
+        console.error("[FCM] Socket call notification error:", err.message);
+      }
     });
   });
 
@@ -37,6 +68,7 @@ const callSocket = (io, socket) => {
 
     if (activeCalls.has(callId)) {
       activeCalls.get(callId).status = "accepted";
+      activeCalls.get(callId).startedAt = Date.now(); // Reset start time to accept time for duration tracking
     }
 
     io.emit("callAccepted", data);
@@ -45,11 +77,37 @@ const callSocket = (io, socket) => {
   /* ==============================
      REJECT CALL
   ============================== */
-  socket.on("rejectCall", (data) => {
+  socket.on("rejectCall", async (data) => {
     const { callId } = data;
 
     if (activeCalls.has(callId)) {
-      activeCalls.get(callId).status = "rejected";
+      const call = activeCalls.get(callId);
+      const text = `Declined ${call.callType === "video" ? "Video Call" : "Voice Call"}`;
+      
+      try {
+        const newMessage = await prisma.message.create({
+          data: {
+            conversationId: call.conversationId,
+            senderId: socket.data?.user?.id || call.callerId,
+            content: text,
+            messageType: "system",
+          },
+          include: {
+            sender: {
+              select: {
+                id: true,
+                fullName: true,
+                avatar: true,
+                email: true,
+              }
+            }
+          }
+        });
+        io.to(`conversation_${call.conversationId}`).emit("receive-message", newMessage);
+      } catch (err) {
+        console.error("Failed to save declined call message:", err);
+      }
+
       activeCalls.delete(callId);
     }
 
@@ -59,10 +117,48 @@ const callSocket = (io, socket) => {
   /* ==============================
      END CALL
   ============================== */
-  socket.on("endCall", (data) => {
+  socket.on("endCall", async (data) => {
     const { callId } = data;
 
     if (activeCalls.has(callId)) {
+      const call = activeCalls.get(callId);
+      const durationSecs = Math.round((Date.now() - call.startedAt) / 1000);
+      const isAccepted = call.status === "accepted";
+      
+      let text = "";
+      if (isAccepted) {
+        const mins = Math.floor(durationSecs / 60);
+        const secs = durationSecs % 60;
+        const durationStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+        text = `${call.callType === "video" ? "Video Call" : "Voice Call"} Ended • ${durationStr}`;
+      } else {
+        text = `Missed ${call.callType === "video" ? "Video Call" : "Voice Call"}`;
+      }
+
+      try {
+        const newMessage = await prisma.message.create({
+          data: {
+            conversationId: call.conversationId,
+            senderId: call.callerId,
+            content: text,
+            messageType: "system",
+          },
+          include: {
+            sender: {
+              select: {
+                id: true,
+                fullName: true,
+                avatar: true,
+                email: true,
+              }
+            }
+          }
+        });
+        io.to(`conversation_${call.conversationId}`).emit("receive-message", newMessage);
+      } catch (err) {
+        console.error("Failed to save call history message:", err);
+      }
+
       activeCalls.delete(callId);
     }
 
@@ -76,11 +172,11 @@ const callSocket = (io, socket) => {
     socket.join(`call_${callId}`);
   });
 
-  socket.on("webrtcSignal", ({ callId, signal, to }) => {
-    io.to(`user_${to}`).emit("webrtcSignal", {
+  socket.on("webrtcSignal", ({ callId, signal }) => {
+    socket.to(`call_${callId}`).emit("webrtcSignal", {
       callId,
       signal,
-      from: socket.id,
+      from: socket.data?.user?.id,
     });
   });
 
@@ -99,23 +195,39 @@ const callSocket = (io, socket) => {
      CALL TIMEOUT CHECK (Auto Missed)
   ============================== */
   setInterval(() => {
-    activeCalls.forEach((callData, callId) => {
-      const now = Date.now();
-      const diff = now - callData.startedAt;
-
-      if (callData.status === "ringing" && diff > 30000) {
+    const now = Date.now();
+    activeCalls.forEach(async (call, callId) => {
+      const diff = now - call.startedAt;
+      if (call.status === "ringing" && diff > 30000) {
+        const text = `Missed ${call.callType === "video" ? "Video Call" : "Voice Call"}`;
+        try {
+          const newMessage = await prisma.message.create({
+            data: {
+              conversationId: call.conversationId,
+              senderId: call.callerId,
+              content: text,
+              messageType: "system",
+            },
+            include: {
+              sender: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  avatar: true,
+                  email: true,
+                }
+              }
+            }
+          });
+          io.to(`conversation_${call.conversationId}`).emit("receive-message", newMessage);
+        } catch (err) {
+          console.error("Failed to save missed call message:", err);
+        }
         io.emit("callMissed", { callId });
         activeCalls.delete(callId);
       }
     });
-  }, 10000);
-
-  /* ==============================
-     DISCONNECT HANDLER
-  ============================== */
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
+  }, 5000);
 };
 
 export default callSocket;

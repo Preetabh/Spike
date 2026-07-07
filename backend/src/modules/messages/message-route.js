@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 
 import {
   sendMessage,
@@ -8,12 +9,14 @@ import {
   deleteMessage,
   addReaction,
   removeReaction,
+  uploadAttachment,
 } from "./message.controller.js";
 
 import { protect } from "../../middlewares/authMiddleware.js";
 import { ipLimiter } from "../../middlewares/ipLimiter.js";
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 /*
 
@@ -26,6 +29,9 @@ router.get("/:messageId", protect, ipLimiter, getMessageById);
 
 // Send Message
 router.post("/", protect, sendMessage);
+
+// Upload Attachment
+router.post("/upload", protect, upload.single("file"), uploadAttachment);
 
 // Get Messages of Conversation
 router.get("/conversation/:conversationId", protect, getConversationMessages);

@@ -135,7 +135,8 @@ export default function WorkspaceDashboard() {
   const onlineMembers = dms.filter(member => member.isOnline);
 
   return (
-    <div className="flex-1 h-full overflow-y-auto bg-[color:var(--background)] px-4 md:px-8 pt-6 pb-24 md:pb-6 relative select-none no-scrollbar">
+    <div className="flex h-full min-h-0 w-full overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)] transition-all duration-300 p-0 md:p-3 md:pl-0">
+      <div className="flex-1 h-full overflow-y-auto border border-white/5 bg-zinc-950/15 rounded-none md:rounded-[24px] shadow-2xl px-4 md:px-8 pt-6 pb-24 md:pb-6 relative select-none no-scrollbar">
       {/* Background Decorative Glows */}
       <div className="absolute top-10 left-10 w-[350px] h-[350px] rounded-full bg-[color:var(--primary)]/5 blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-20 right-20 w-[400px] h-[400px] rounded-full bg-[color:var(--accent)]/5 blur-3xl pointer-events-none"></div>
@@ -310,5 +311,6 @@ export default function WorkspaceDashboard() {
         </div>
       </div>
     </div>
+  </div>
   );
 }

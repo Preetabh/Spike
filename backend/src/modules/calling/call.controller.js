@@ -1,26 +1,36 @@
-import CallHistory from "../../models/call-model.js";
-import User from "../../models/user-model.js";
+import { prisma } from "../../lib/prisma.js";
 
 /* ======================================================
    START CALL (Creates call record with ongoing status)
 ====================================================== */
 export const startCall = async (req, res, next) => {
   try {
-    const { chatId, participants, callType, callScope = "1-to-1", groupName } = req.body;
+    const { workspaceId, participants, type } = req.body;
+    const callerId = req.user.id;
 
-    if (!chatId || !participants || participants.length === 0) {
-      return res.status(400).json({ message: "chatId and participants required" });
+    if (!workspaceId) {
+      return res.status(400).json({ message: "workspaceId is required" });
     }
 
-    const call = await CallHistory.create({
-      chatId,
-      caller: req.user._id,
-      participants,
-      callType,
-      callScope,
-      groupName: callScope === "group" ? groupName : null,
-      status: "ongoing",
-      startedAt: new Date(),
+    const call = await prisma.call.create({
+      data: {
+        workspaceId,
+        callerId,
+        type: type || "audio",
+        status: "ongoing",
+        startedAt: new Date(),
+        participants: {
+          connect: (participants || []).map((id) => ({ id })),
+        },
+      },
+      include: {
+        caller: {
+          select: { id: true, fullName: true, avatar: true },
+        },
+        participants: {
+          select: { id: true, fullName: true, avatar: true },
+        },
+      },
     });
 
     res.status(201).json({ success: true, call });
@@ -36,12 +46,12 @@ export const acceptCall = async (req, res, next) => {
   try {
     const { callId } = req.params;
 
-    const call = await CallHistory.findById(callId);
-    if (!call) return res.status(404).json({ message: "Call not found" });
-
-    call.status = "accepted";
-    call.acceptedAt = new Date();
-    await call.save();
+    const call = await prisma.call.update({
+      where: { id: callId },
+      data: {
+        status: "accepted",
+      },
+    });
 
     res.json({ success: true, call });
   } catch (error) {
@@ -56,12 +66,13 @@ export const rejectCall = async (req, res, next) => {
   try {
     const { callId } = req.params;
 
-    const call = await CallHistory.findById(callId);
-    if (!call) return res.status(404).json({ message: "Call not found" });
-
-    call.status = "rejected";
-    call.endedAt = new Date();
-    await call.save();
+    const call = await prisma.call.update({
+      where: { id: callId },
+      data: {
+        status: "rejected",
+        endedAt: new Date(),
+      },
+    });
 
     res.json({ success: true, call });
   } catch (error) {
@@ -77,14 +88,14 @@ export const endCall = async (req, res, next) => {
     const { callId } = req.params;
     const { duration } = req.body;
 
-    const call = await CallHistory.findById(callId);
-    if (!call) return res.status(404).json({ message: "Call not found" });
-
-    call.status = "completed";
-    call.duration = duration || 0;
-    call.endedAt = new Date();
-
-    await call.save();
+    const call = await prisma.call.update({
+      where: { id: callId },
+      data: {
+        status: "completed",
+        duration: duration || 0,
+        endedAt: new Date(),
+      },
+    });
 
     res.json({ success: true, call });
   } catch (error) {
@@ -97,17 +108,26 @@ export const endCall = async (req, res, next) => {
 ====================================================== */
 export const saveCall = async (req, res, next) => {
   try {
-    const { chatId, participants, callType, duration } = req.body;
+    const { workspaceId, participants, type, duration } = req.body;
+    const callerId = req.user.id;
 
-    const call = await CallHistory.create({
-      chatId,
-      caller: req.user._id,
-      participants,
-      callType,
-      duration,
-      status: "completed",
-      startedAt: new Date(),
-      endedAt: new Date(),
+    if (!workspaceId) {
+      return res.status(400).json({ message: "workspaceId is required" });
+    }
+
+    const call = await prisma.call.create({
+      data: {
+        workspaceId,
+        callerId,
+        type: type || "audio",
+        status: "completed",
+        duration: duration || 0,
+        startedAt: new Date(),
+        endedAt: new Date(),
+        participants: {
+          connect: (participants || []).map((id) => ({ id })),
+        },
+      },
     });
 
     res.status(201).json({ success: true, call });
@@ -123,9 +143,17 @@ export const getCallById = async (req, res, next) => {
   try {
     const { callId } = req.params;
 
-    const call = await CallHistory.findById(callId)
-      .populate("caller", "fullName profilePic")
-      .populate("participants", "fullName profilePic");
+    const call = await prisma.call.findUnique({
+      where: { id: callId },
+      include: {
+        caller: {
+          select: { id: true, fullName: true, avatar: true },
+        },
+        participants: {
+          select: { id: true, fullName: true, avatar: true },
+        },
+      },
+    });
 
     if (!call) return res.status(404).json({ message: "Call not found" });
 
@@ -142,13 +170,13 @@ export const markMissedCall = async (req, res, next) => {
   try {
     const { callId } = req.body;
 
-    const call = await CallHistory.findById(callId);
-    if (!call) {
-      return res.status(404).json({ message: "Call not found" });
-    }
-
-    call.status = "missed";
-    await call.save();
+    const call = await prisma.call.update({
+      where: { id: callId },
+      data: {
+        status: "missed",
+        endedAt: new Date(),
+      },
+    });
 
     res.json({ success: true, call });
   } catch (error) {
@@ -161,11 +189,24 @@ export const markMissedCall = async (req, res, next) => {
 ====================================================== */
 export const getCallHistory = async (req, res, next) => {
   try {
-    const calls = await CallHistory.find({
-      participants: req.user._id,
-    })
-      .populate("caller", "fullName profilePic")
-      .sort({ createdAt: -1 });
+    const userId = req.user.id;
+    const calls = await prisma.call.findMany({
+      where: {
+        OR: [
+          { callerId: userId },
+          { participants: { some: { id: userId } } },
+        ],
+      },
+      include: {
+        caller: {
+          select: { id: true, fullName: true, avatar: true },
+        },
+        participants: {
+          select: { id: true, fullName: true, avatar: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
     res.json({
       success: true,
@@ -184,9 +225,10 @@ export const getWorkspaceCalls = async (req, res, next) => {
   try {
     const { workspaceId } = req.params;
 
-    const calls = await CallHistory.find({
-      chatId: workspaceId,
-    }).sort({ createdAt: -1 });
+    const calls = await prisma.call.findMany({
+      where: { workspaceId },
+      orderBy: { createdAt: "desc" },
+    });
 
     const totalCalls = calls.length;
     const completed = calls.filter((c) => c.status === "completed").length;
@@ -213,11 +255,9 @@ export const deleteCall = async (req, res, next) => {
   try {
     const { callId } = req.params;
 
-    const call = await CallHistory.findById(callId);
-    if (!call) return res.status(404).json({ message: "Call not found" });
-
-    call.isDeleted = true;
-    await call.save();
+    await prisma.call.delete({
+      where: { id: callId },
+    });
 
     res.json({ success: true, message: "Call deleted" });
   } catch (error) {

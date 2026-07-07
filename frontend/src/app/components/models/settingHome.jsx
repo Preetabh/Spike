@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { applyTheme } from "../../../lib/theme";
+import toast from "react-hot-toast";
 import EditWorkspace from "../../(protected)/workspace/[id]/settings/editWorkspace.jsx";
 import ManageMembers from "../../(protected)/workspace/[id]/settings/manageMembers.jsx";
 
@@ -37,6 +38,74 @@ const SettingHome = ({ onClose, initialTab = "preferences" }) => {
   });
 
   const isOwner = workspace?.ownerId === user?.id || workspace?.admin === true;
+
+  const queryClient = useQueryClient();
+  const [avatar, setAvatar] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const avatarInputRef = useRef(null);
+
+  useEffect(() => {
+    if (user) {
+      setFullName(user.fullName || "");
+      setAvatar(user.avatar || "");
+    }
+  }, [user]);
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/messages/upload`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+
+      const data = await res.json();
+      setAvatar(data.url);
+      toast.success("Avatar uploaded. Click Save to apply.");
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      toast.error("Failed to upload profile picture.");
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setIsSavingProfile(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/v1/users/me`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          fullName,
+          profilePic: avatar || null
+        })
+      });
+
+      if (!res.ok) throw new Error("Update failed");
+
+      toast.success("Profile updated successfully!");
+      queryClient.invalidateQueries(["me"]);
+    } catch (err) {
+      console.error("Profile save error:", err);
+      toast.error("Failed to save profile details.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   useEffect(() => {
     if (initialTab) {
@@ -127,6 +196,16 @@ const SettingHome = ({ onClose, initialTab = "preferences" }) => {
             </div>
             <ul className="space-y-1">
               <li
+                onClick={() => setActiveTab("profile")}
+                className={`px-3.5 py-2.5 rounded-xl cursor-pointer text-xs font-semibold tracking-wide transition-all duration-200 ${
+                  activeTab === "profile"
+                    ? "bg-[color:var(--primary)]/15 text-[color:var(--primary)] font-extrabold shadow-sm"
+                    : "hover:bg-[color:var(--accent)]/5 text-[color:var(--muted-foreground)] hover:text-[color:var(--foreground)]"
+                }`}
+              >
+                My Profile
+              </li>
+              <li
                 onClick={() => setActiveTab("preferences")}
                 className={`px-3.5 py-2.5 rounded-xl cursor-pointer text-xs font-semibold tracking-wide transition-all duration-200 ${
                   activeTab === "preferences"
@@ -166,6 +245,14 @@ const SettingHome = ({ onClose, initialTab = "preferences" }) => {
           {/* Navigation Bar for Mobile */}
           <div className="md:hidden flex gap-1.5 px-4 pt-4 pb-2 border-b border-[color:var(--border)] overflow-x-auto no-scrollbar shrink-0">
             <button
+              onClick={() => setActiveTab("profile")}
+              className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition active:scale-95 ${
+                activeTab === "profile" ? "bg-[color:var(--primary)] text-[color:var(--primary-foreground)] shadow-md" : "bg-[color:var(--card)] border border-[color:var(--border)] text-[color:var(--muted-foreground)]"
+              }`}
+            >
+              My Profile
+            </button>
+            <button
               onClick={() => setActiveTab("preferences")}
               className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition active:scale-95 ${
                 activeTab === "preferences" ? "bg-[color:var(--primary)] text-[color:var(--primary-foreground)] shadow-md" : "bg-[color:var(--card)] border border-[color:var(--border)] text-[color:var(--muted-foreground)]"
@@ -197,6 +284,90 @@ const SettingHome = ({ onClose, initialTab = "preferences" }) => {
 
           {/* Content Main View */}
           <main className="flex-1 p-4 sm:p-6 overflow-y-auto no-scrollbar min-h-0 bg-[color:var(--background)]">
+            {activeTab === "profile" && (
+              <div className="space-y-6 animate-fade-in">
+                {/* Profile Avatar & Details card */}
+                <section className="rounded-2xl border border-[color:var(--border)] p-5 bg-[color:var(--card)]/50 backdrop-blur-md flex flex-col gap-6">
+                  <div className="flex flex-col sm:flex-row items-center gap-5 pb-2">
+                    <input
+                      type="file"
+                      ref={avatarInputRef}
+                      onChange={handleAvatarUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+
+                    <img
+                      src={
+                        avatar ||
+                        "https://ui-avatars.com/api/?name=" + (fullName || user?.fullName || "User")
+                      }
+                      alt="user avatar"
+                      className="w-24 h-24 rounded-3xl object-cover border border-[color:var(--border)] bg-zinc-950"
+                    />
+
+                    <div className="flex flex-col items-center sm:items-start gap-2.5">
+                      <p className="text-xs text-[color:var(--muted-foreground)] text-center sm:text-left leading-relaxed">
+                        Clear profile pictures are easier for colleagues to identify.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => avatarInputRef.current?.click()}
+                          disabled={isUploadingAvatar}
+                          className="px-4 py-2 rounded-xl bg-[color:var(--sidebar-accent)] text-[color:var(--sidebar-accent-foreground)] text-xs font-bold hover:opacity-90 transition disabled:opacity-50 cursor-pointer border-none outline-none"
+                        >
+                          {isUploadingAvatar ? "Uploading..." : "Upload Photo"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAvatar("")}
+                          className="px-4 py-2 rounded-xl border border-[color:var(--border)] text-xs font-bold hover:bg-[color:var(--background)] hover:text-foreground transition cursor-pointer text-foreground bg-transparent"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-semibold text-[color:var(--muted-foreground)]">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full mt-2 bg-[color:var(--card)] border border-[color:var(--border)] rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-[color:var(--primary)] text-sm"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-[color:var(--muted-foreground)]">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        value={user?.email || ""}
+                        disabled
+                        className="w-full mt-2 bg-[color:var(--background)] border border-[color:var(--border)] text-[color:var(--muted-foreground)] rounded-xl px-4 py-3 outline-none cursor-not-allowed text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveProfile}
+                    disabled={isSavingProfile}
+                    className="self-end px-5 py-2.5 rounded-xl bg-[color:var(--primary)] text-white text-xs font-bold shadow-md hover:opacity-90 active:scale-95 transition disabled:opacity-50 cursor-pointer border-none outline-none"
+                  >
+                    {isSavingProfile ? "Saving..." : "Save Profile Details"}
+                  </button>
+                </section>
+              </div>
+            )}
+
             {activeTab === "preferences" && (
               <div className="space-y-6 animate-fade-in">
                 {/* Mode section */}

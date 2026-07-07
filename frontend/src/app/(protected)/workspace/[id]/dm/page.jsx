@@ -4,9 +4,9 @@ import ChatWelcome from "../../../../components/chat/ChatWelcome";
 
 const PersonalChat = () => {
   return (
-    <div className="flex h-full overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)] transition-all duration-300">
+    <div className="flex h-full min-h-0 w-full overflow-hidden bg-[color:var(--background)] text-[color:var(--foreground)] transition-all duration-300 p-0 md:p-3 md:pl-0 gap-3">
       {/* LEFT SIDEBAR */}
-      <div className="relative w-full md:w-[390px] border-r border-[color:var(--border)] bg-[color:var(--sidebar)] text-[color:var(--sidebar-foreground)] flex flex-col overflow-hidden backdrop-blur-xl transition-all duration-300">
+      <div className="relative w-full md:w-[350px] border-none md:border border-white/5 bg-zinc-950/20 text-[color:var(--sidebar-foreground)] flex flex-col overflow-hidden backdrop-blur-2xl rounded-none md:rounded-[24px] shadow-2xl transition-all duration-300">
         {/* Glow Effect */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-52 bg-gradient-to-b from-[color:var(--primary)]/10 to-transparent"></div>
@@ -47,7 +47,7 @@ const PersonalChat = () => {
       </div>
 
       {/* RIGHT SECTION */}
-      <div className="relative hidden md:flex flex-1 flex-col bg-[color:var(--background)] overflow-hidden transition-all duration-300">
+      <div className="relative hidden md:flex flex-1 flex-col border border-white/5 bg-zinc-950/10 rounded-[24px] shadow-2xl overflow-hidden transition-all duration-300">
         {/* Decorative Glow */}
         <div className="absolute top-0 right-0 w-[450px] h-[450px] rounded-full bg-[color:var(--primary)]/5 blur-3xl pointer-events-none"></div>
 
