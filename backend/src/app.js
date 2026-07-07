@@ -65,9 +65,20 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // CORS
+const allowedOrigins = [
+  "http://localhost:3000",
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
@@ -98,6 +109,9 @@ app.use("/api/v1/dm", dmRouter);
 /* ===============================
    ERROR HANDLING
 ================================ */
+
+// Serve favicon.ico dummy/empty response to prevent 404 log clutter
+app.get("/favicon.ico", (req, res) => res.status(204).end());
 
 // 404
 app.use(notFound);
