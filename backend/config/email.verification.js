@@ -2,10 +2,11 @@
 
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
+import axios from "axios";
 
 dotenv.config();
 
-// ✅ Transporter Setup
+// ✅ SMTP Transporter Setup (for fallback / local development)
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
@@ -17,15 +18,60 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ✅ OTP EMAIL
+// ✅ Shared Email Sender Helper (Uses Brevo API in production/Render, falls back to SMTP locally)
+const sendEmail = async ({ to, subject, html, fromName = "Spike" }) => {
+  const brevoApiKey = process.env.BREVO_API_KEY;
+  const senderEmail = process.env.NODEMAILER_EMAIL || "no-reply@spike.com";
 
+  if (brevoApiKey) {
+    try {
+      console.log(`✉️ Sending email to ${to} via Brevo HTTP API...`);
+      const response = await axios.post(
+        "https://api.brevo.com/v3/smtp/email",
+        {
+          sender: { name: fromName, email: senderEmail },
+          to: [{ email: to }],
+          subject,
+          htmlContent: html,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "api-key": brevoApiKey,
+          },
+        }
+      );
+      console.log("✅ Email sent successfully via Brevo API:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("❌ Brevo API Error:", error.response?.data || error.message);
+      throw new Error("Email sending failed via Brevo API");
+    }
+  } else {
+    try {
+      console.log(`✉️ Sending email to ${to} via SMTP (Local Fallback)...`);
+      const info = await transporter.sendMail({
+        from: `"${fromName}" <${senderEmail}>`,
+        to,
+        subject,
+        html,
+      });
+      console.log("✅ Email sent successfully via SMTP:", info.messageId);
+      return info;
+    } catch (error) {
+      console.error("❌ SMTP Error:", error.message);
+      throw new Error("Email sending failed via SMTP");
+    }
+  }
+};
+
+// ✅ OTP EMAIL
 export const sendOtpEmail = async (
   to,
   subject,
   otp
 ) => {
-  try {
-    const htmlTemplate = `
+  const htmlTemplate = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -103,32 +149,23 @@ export const sendOtpEmail = async (
 </html>
 `;
 
-    const info = await transporter.sendMail({
-      from: `"Spike OTP" <${process.env.NODEMAILER_EMAIL}>`,
-      to,
-      subject,
-      html: htmlTemplate,
-    });
-
-    return info;
-  } catch (error) {
-    console.error("❌ OTP Email Error:", error.message);
-
-    throw new Error("OTP email sending failed");
-  }
+  return sendEmail({
+    to,
+    subject,
+    html: htmlTemplate,
+    fromName: "Spike OTP",
+  });
 };
 
 
 // ✅ WORKSPACE INVITE EMAIL
-
 export const sendInviteEmail = async (
   to,
   workspaceName,
   inviteLink,
   invitedBy
 ) => {
-  try {
-    const htmlTemplate = `
+  const htmlTemplate = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -221,17 +258,10 @@ export const sendInviteEmail = async (
 </html>
 `;
 
-    const info = await transporter.sendMail({
-      from: `"Spike Workspace" <${process.env.NODEMAILER_EMAIL}>`,
-      to,
-      subject: `Invitation to join ${workspaceName}`,
-      html: htmlTemplate,
-    });
-
-    return info;
-  } catch (error) {
-    console.error("❌ Invite Email Error:", error.message);
-
-    throw new Error("Invite email sending failed");
-  }
+  return sendEmail({
+    to,
+    subject: `Invitation to join ${workspaceName}`,
+    html: htmlTemplate,
+    fromName: "Spike Workspace",
+  });
 };
